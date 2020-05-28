@@ -28,7 +28,7 @@ fi
 RULE_FILE=$1
 
 test_rule() {
-	for i in {1..200}
+	for i in {1..100}
 	do
 		generate_random
 		sgn $PLAIN_DECODER -a $ARCHITECTURE -c $ENCODING_COUNT -max $OBFUSCATION_LEVEL data &> /dev/null
@@ -123,6 +123,21 @@ do
 
 done
 
+echo -e "\n[### !! TESTING FOR FINAL BOSS !!]"
+echo "[!] This may take more time to bruteforce (things will get hot)"
+reset_stage
+OBFUSCATION_LEVEL=0
+generate_random
+sgn -a 32 -c $ENCODING_COUNT -max 0 data &> /dev/null
+if [[ `yara -c $RULE_FILE data.sgn` == 0 ]]; then
+    print_fail
+fi
+rm data data.sgn &> /dev/null
+generate_random
+sgn -a 64 -c $ENCODING_COUNT -max 0 data &> /dev/null
+if [[ `yara -c $RULE_FILE data.sgn` == 0 ]]; then
+    print_fail
+fi
 
 echo -e "\n[+] $1 SUCCESS !!"
 echo "[+] It seems that your rule passed all required tests. Now you should check out the false positive ratio of your rule."

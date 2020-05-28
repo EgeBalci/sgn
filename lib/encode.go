@@ -71,22 +71,22 @@ func (encoder Encoder) Encode(payload []byte) ([]byte, error) {
 		payload = append(payload, SafeRegisterSuffix[encoder.architecture]...)
 	}
 
-	// Add garbage instrctions before the ciphered decoder stub
+	// Add garbage instrctions before the un-encoded payload
 	garbage, err := encoder.GenerateGarbageInstructions()
 	if err != nil {
 		return nil, err
 	}
 	payload = append(garbage, payload...)
 	encoder.ObfuscationLimit -= len(garbage)
-
+	// Apply ADFL cipher to payload
 	ciperedPayload := CipherADFL(payload, encoder.Seed)
 	decoderAssembly := encoder.NewDecoderAssembly(ciperedPayload)
-
+	// Assemble decoder stub
 	decoder, ok := encoder.Assemble(decoderAssembly)
 	if !ok {
 		return nil, errors.New("decoder assembly failed")
 	}
-
+	// Combine decoder stub + ciphered payload into encoded payload
 	encodedPayload := append(decoder, ciperedPayload...)
 	if encoder.PlainDecoder {
 		if encoder.SaveRegisters && encoder.EncodingCount == 1 {
@@ -95,6 +95,13 @@ func (encoder Encoder) Encode(payload []byte) ([]byte, error) {
 		return encodedPayload, nil
 	}
 
+	// Add more garbage instrctions before the decoder stub
+	garbage, err = encoder.GenerateGarbageInstructions()
+	if err != nil {
+		return nil, err
+	}
+	encodedPayload = append(garbage, encodedPayload...)
+	// Calculate schema size
 	schemaSize := ((len(encodedPayload) - len(ciperedPayload)) / (encoder.architecture / 8)) + 1
 	randomSchema := encoder.NewCipherSchema(schemaSize)
 
@@ -211,7 +218,7 @@ func GetSchemaTable(schema SCHEMA) string {
 	table.SetHeader([]string{"OPERAND", "KEY"})
 	for _, cursor := range schema {
 		if cursor.Key == nil {
-			table.Append([]string{cursor.OP, "0x00"})
+			table.Append([]string{cursor.OP, "0x00000000"})
 		} else {
 			table.Append([]string{cursor.OP, fmt.Sprintf("0x%x", cursor.Key)})
 		}

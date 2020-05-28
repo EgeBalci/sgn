@@ -32,7 +32,7 @@ func (encoder Encoder) GenerateGarbageAssembly() string {
 		innerRandomGarbageAssembly := encoder.GenerateGarbageAssembly()
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{G}", innerRandomGarbageAssembly)
 	}
-	return "\t" + randomGarbageAssembly + ";\n"
+	return randomGarbageAssembly + ";\n"
 }
 
 // GenerateGarbageInstructions generates random garbage instruction(s)
@@ -40,7 +40,6 @@ func (encoder Encoder) GenerateGarbageAssembly() string {
 func (encoder Encoder) GenerateGarbageInstructions() ([]byte, error) {
 
 	randomGarbageAssembly := encoder.GenerateGarbageAssembly()
-
 	garbage, ok := encoder.Assemble(randomGarbageAssembly)
 	if !ok {
 		return nil, errors.New("random garbage instruction assembly failed")
@@ -58,6 +57,13 @@ func (encoder Encoder) GenerateGarbageInstructions() ([]byte, error) {
 		}
 	}
 
+	randomGarbageAssembly = encoder.GenerateGarbageAssembly()
+	garbage2, ok := encoder.Assemble(randomGarbageAssembly)
+	if !ok {
+		return nil, errors.New("random garbage instruction assembly failed")
+	}
+	garbage = append(garbage, garbage2...)
+
 	if len(garbage) <= encoder.ObfuscationLimit {
 		encoder.ObfuscationLimit -= len(garbage)
 		return garbage, nil
@@ -66,37 +72,53 @@ func (encoder Encoder) GenerateGarbageInstructions() ([]byte, error) {
 	return encoder.GenerateGarbageInstructions()
 }
 
-// GenerateGarbageFunction generates a meaningless function with garbage instructions inside
-func (encoder Encoder) GenerateGarbageFunction() ([]byte, error) {
+// CalculateAverageGarbageInstructionSize generates a JMP instruction over random bytes
+func (encoder Encoder) CalculateAverageGarbageInstructionSize() (float64, error) {
 
-	prologue := ""
-	prologue += "PUSH EBP;"
-	prologue += "MOV EBP,ESP;"
-	prologue += fmt.Sprintf("SUB ESP,0x%d", int(RandomByte()))
-
-	prologueBin, ok := encoder.Assemble(prologue)
-	if !ok {
-		return nil, errors.New("garbage function assembly failed")
+	var average float64 = 0
+	for i := 0; i < 1000; i++ {
+		randomGarbageAssembly := encoder.GenerateGarbageAssembly()
+		garbage, ok := encoder.Assemble(randomGarbageAssembly)
+		if !ok {
+			return 0, errors.New("random garbage instruction assembly failed")
+		}
+		average += float64(len(garbage))
 	}
-
-	//
-	garbage, err := encoder.GenerateGarbageInstructions()
-	if err != nil {
-		return nil, err
-	}
-
-	epilogue := ""
-	epilogue += "MOV ESP,EBP;"
-	epilogue += "POP EBP;"
-	epilogue += "RET;"
-
-	epilogueBin, ok := encoder.Assemble(prologue)
-	if !ok {
-		return nil, errors.New("random garbage instruction assembly failed")
-	}
-
-	return append(append(prologueBin, garbage...), epilogueBin...), nil
+	average = average / 1000
+	return average, nil
 }
+
+// // GenerateGarbageFunction generates a meaningless function with garbage instructions inside
+// func (encoder Encoder) GenerateGarbageFunction() ([]byte, error) {
+
+// 	prologue := ""
+// 	prologue += "PUSH EBP;"
+// 	prologue += "MOV EBP,ESP;"
+// 	prologue += fmt.Sprintf("SUB ESP,0x%d", int(RandomByte()))
+
+// 	prologueBin, ok := encoder.Assemble(prologue)
+// 	if !ok {
+// 		return nil, errors.New("garbage function assembly failed")
+// 	}
+
+// 	//
+// 	garbage, err := encoder.GenerateGarbageInstructions()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	epilogue := ""
+// 	epilogue += "MOV ESP,EBP;"
+// 	epilogue += "POP EBP;"
+// 	epilogue += "RET;"
+
+// 	epilogueBin, ok := encoder.Assemble(prologue)
+// 	if !ok {
+// 		return nil, errors.New("random garbage instruction assembly failed")
+// 	}
+
+// 	return append(append(prologueBin, garbage...), epilogueBin...), nil
+// }
 
 // GenerateGarbageJump generates a JMP instruction over random bytes
 func (encoder Encoder) GenerateGarbageJump() ([]byte, error) {

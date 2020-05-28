@@ -67,6 +67,10 @@ func main() {
 	encoder.EncodingCount = *encCount
 	encoder.SaveRegisters = *saveRegisters
 	eror(encoder.SetArchitecture(*arch))
+	// Calculate evarage garbage instrunction size
+	average, err := encoder.CalculateAverageGarbageInstructionSize()
+	eror(err)
+	printVerbose("Avg. Garbage Size: " + fmt.Sprintf("%f", average))
 
 	if *badChars != "" || *asciPayload {
 

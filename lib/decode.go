@@ -83,14 +83,30 @@ func (encoder Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte, 
 
 	reg := encoder.RandomRegister(encoder.architecture / 8)
 
-	// Get the garbage+decoder address to register
-	pop, ok := encoder.Assemble(fmt.Sprintf("pop %s;", reg))
-	if !ok {
-		return nil, errors.New("schema decoder assembly failed")
+	// Toss a coin for get the garbage+decoder address to register by pop or mov
+	if CoinFlip() {
+		pop, ok := encoder.Assemble(fmt.Sprintf("pop %s;", reg)) // !!
+		if !ok {
+			return nil, errors.New("schema decoder assembly failed")
+		}
+		payload = append(payload, pop...)
+	} else {
+		mov, ok := encoder.Assemble(fmt.Sprintf("mov %s,[esp];", reg)) // !!
+		if !ok {
+			return nil, errors.New("schema decoder assembly failed")
+		}
+		payload = append(payload, mov...)
 	}
-	payload = append(payload, pop...)
 
 	for _, cursor := range schema {
+
+		// Mandatory obfuscation with coin flip for true polimorphism
+		garbage, err = encoder.GenerateGarbageInstructions()
+		if err != nil {
+			return nil, err
+		}
+		payload = append(payload, garbage...)
+
 		stepAssembly := ""
 		if cursor.Key == nil {
 			stepAssembly += fmt.Sprintf("\t%s dword ptr [%s+0x%x];\n", cursor.OP, reg, index)
@@ -105,12 +121,6 @@ func (encoder Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte, 
 		}
 		payload = append(payload, decipherStep...)
 		index += 4
-		// Mandatory obfuscation with coin flip for true metamorphism
-		garbage, err = encoder.GenerateGarbageInstructions()
-		if err != nil {
-			return nil, err
-		}
-		payload = append(payload, garbage...)
 	}
 
 	// More possibilities...
