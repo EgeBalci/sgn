@@ -46,7 +46,7 @@ func NewEncoder() Encoder {
 }
 
 // SetArchitecture sets the encoder architecture
-func (encoder Encoder) SetArchitecture(arch int) error {
+func (encoder *Encoder) SetArchitecture(arch int) error {
 	switch arch {
 	case 32:
 		encoder.architecture = 32

@@ -93,8 +93,8 @@ var GarbageMnemonics = []string{
 	"ADD {R},{K};{G};SUB {R},{K}",
 	"SUB {R},{K};{G};ADD {R},{K}",
 	"ROR {R},{K};{G};ROL {R},{K}",
-	"ROL {R},{K};{G};ROR {R},{K}",
-	"PUSH EBP;MOV EBP,ESP;{G};MOV ESP,EBP;POP EBP"} // function prologue/apilogue
+	"ROL {R},{K};{G};ROR {R},{K}"}
+	//"PUSH EBP;MOV EBP,ESP;{G};MOV ESP,EBP;POP EBP"} // function prologue/apilogue, doesn't compile if arch == 64
 
 // JMP 2 -> Jumps to next instruction
 
