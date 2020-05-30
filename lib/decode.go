@@ -39,7 +39,7 @@ data:
 
 // NewDecoderAssembly creates a unobfuscated decoder stub to the given encoded payload
 // with the given architecture and seed value
-func (encoder Encoder) NewDecoderAssembly(payload []byte) string {
+func (encoder *Encoder) NewDecoderAssembly(payload []byte) string {
 
 	decoder := STUB[encoder.architecture]
 	reg := encoder.SafeRandomRegister(encoder.architecture/8, "ECX")
@@ -56,7 +56,7 @@ func (encoder Encoder) NewDecoderAssembly(payload []byte) string {
 
 // AddSchemaDecoder creates decoder stub for binaries that are ciphered with SchemaCipher function.
 // The schema array that is used on the given payload, architecture of the payload and obfuscation level is required.
-func (encoder Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte, error) {
+func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte, error) {
 
 	index := 0
 

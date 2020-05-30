@@ -21,7 +21,7 @@ type REG struct {
 // Initialize the register values
 func init() {
 
-	// Setup x86 the register values
+	// Setup x86 GP the register values
 	REGS = make(map[int][]REG)
 	REGS[32] = append(REGS[32], REG{Extended: "EAX", High: "AX", Low: "AL", Arch: 32})
 	REGS[32] = append(REGS[32], REG{Extended: "EBX", High: "BX", Low: "BL", Arch: 32})
@@ -30,7 +30,7 @@ func init() {
 	// since there is no way to access 1 byte use above instead
 	REGS[32] = append(REGS[32], REG{Extended: "ESI", High: "SI", Low: "AL", Arch: 32})
 	REGS[32] = append(REGS[32], REG{Extended: "EDI", High: "DI", Low: "BL", Arch: 32})
-	// Setup x64 the register values
+	// Setup x64 GP the register values
 	REGS[64] = append(REGS[64], REG{Full: "RAX", Extended: "EAX", High: "AX", Low: "AL", Arch: 64})
 	REGS[64] = append(REGS[64], REG{Full: "RBX", Extended: "EBX", High: "BX", Low: "BL", Arch: 64})
 	REGS[64] = append(REGS[64], REG{Full: "RCX", Extended: "ECX", High: "CX", Low: "CL", Arch: 64})
@@ -116,6 +116,44 @@ func (encoder Encoder) RandomRegister(size int) string {
 		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Full
 	default:
 		panic("invalid register size")
+	}
+
+}
+
+// GetRandomStackAddress returns a stack address assembly referance based on the encoder architecture
+// Ex: [esp+10] (address range is 1 byte)
+func (encoder Encoder) GetRandomStackAddress() string {
+
+	if CoinFlip() {
+		return fmt.Sprintf("[%s+0x%x]", encoder.GetStackPointer(), RandomByte())
+	}
+	return fmt.Sprintf("[%s-0x%x]", encoder.GetStackPointer(), RandomByte())
+}
+
+// GetStackPointer returns the stack pointer register string based on the encoder architecture
+func (encoder Encoder) GetStackPointer() string {
+
+	switch encoder.architecture {
+	case 32:
+		return "ESP"
+	case 64:
+		return "RSP"
+	default:
+		panic("invalid architecture")
+	}
+
+}
+
+// GetBasePointer returns the base pointer register string based on the encoder architecture
+func (encoder Encoder) GetBasePointer() string {
+
+	switch encoder.architecture {
+	case 32:
+		return "EBP"
+	case 64:
+		return "RBP"
+	default:
+		panic("invalid architecture")
 	}
 
 }

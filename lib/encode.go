@@ -32,7 +32,7 @@ type Encoder struct {
 }
 
 // NewEncoder for creating new encoder structures
-func NewEncoder() Encoder {
+func NewEncoder() *Encoder {
 	// Create with default settings
 	var encoder Encoder
 	// need to check architecture
@@ -42,7 +42,7 @@ func NewEncoder() Encoder {
 	encoder.Seed = RandomByte()
 	encoder.EncodingCount = 1
 	encoder.SaveRegisters = false
-	return encoder
+	return &encoder
 }
 
 // SetArchitecture sets the encoder architecture
@@ -59,13 +59,13 @@ func (encoder *Encoder) SetArchitecture(arch int) error {
 }
 
 // GetArchitecture returns the encoder architecture
-func (encoder Encoder) GetArchitecture() int {
+func (encoder *Encoder) GetArchitecture() int {
 	return encoder.architecture
 }
 
 // Encode function is the primary encode method for SGN
 // all nessary options and parameters are contained inside the encodder struct
-func (encoder Encoder) Encode(payload []byte) ([]byte, error) {
+func (encoder *Encoder) Encode(payload []byte) ([]byte, error) {
 
 	if encoder.SaveRegisters {
 		payload = append(payload, SafeRegisterSuffix[encoder.architecture]...)
@@ -139,7 +139,7 @@ func CipherADFL(data []byte, seed byte) []byte {
 // Encoding done without using any loop conditions based on the schema values.
 // Function performs logical/arithmetic operations given in the schema array.
 // If invalid operand supplied function returns nil
-func (encoder Encoder) SchemaCipher(data []byte, index int, schema SCHEMA) []byte {
+func (encoder *Encoder) SchemaCipher(data []byte, index int, schema SCHEMA) []byte {
 
 	for _, cursor := range schema {
 
@@ -189,7 +189,7 @@ func CoinFlip() bool {
 // NewCipherSchema generates random schema for
 // using int the SchemaCipher function.
 // Generated schema contains random operands and keys.
-func (encoder Encoder) NewCipherSchema(num int) SCHEMA {
+func (encoder *Encoder) NewCipherSchema(num int) SCHEMA {
 	schema := make(SCHEMA, num)
 
 	for i, cursor := range schema {

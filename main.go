@@ -48,18 +48,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Setup a encoder struct
 	input := os.Args[len(os.Args)-1]
-
-	printVerbose("Input: " + input)
-	printVerbose("Architecture: x" + strconv.Itoa(*arch))
-	printVerbose("Max. Obfuscation Size: " + strconv.Itoa(*obsLevel))
-	printVerbose("Encode Count: " + strconv.Itoa(*encCount))
-	printVerbose("ASCII Mode: " + strconv.FormatBool(*asciPayload))
-	printVerbose("Bad Characters: " + *badChars)
-
-	file, err := ioutil.ReadFile(input)
-	eror(err)
-	printStatus("Input Size: " + strconv.Itoa(len(file)))
 	payload := []byte{}
 	encoder := sgn.NewEncoder()
 	encoder.ObfuscationLimit = *obsLevel
@@ -67,6 +57,20 @@ func main() {
 	encoder.EncodingCount = *encCount
 	encoder.SaveRegisters = *saveRegisters
 	eror(encoder.SetArchitecture(*arch))
+	file, err := ioutil.ReadFile(input)
+	eror(err)
+
+	// Print encoder params...
+	printVerbose("Input: " + input)
+	printStatus("Input Size: " + strconv.Itoa(len(file)))
+	printVerbose("Architecture: x" + strconv.Itoa(encoder.GetArchitecture()))
+	printVerbose("Encode Count: " + strconv.Itoa(encoder.EncodingCount))
+	printVerbose("Max. Obfuscation Size: " + strconv.Itoa(encoder.ObfuscationLimit))
+	printVerbose("Bad Characters: " + *badChars)
+	printVerbose("ASCII Mode: " + strconv.FormatBool(*asciPayload))
+	printVerbose("Plain Decoder: " + strconv.FormatBool(encoder.PlainDecoder))
+	printVerbose("Safe Registers: " + strconv.FormatBool(encoder.SaveRegisters))
+
 	// Calculate evarage garbage instrunction size
 	average, err := encoder.CalculateAverageGarbageInstructionSize()
 	eror(err)
@@ -136,7 +140,7 @@ func main() {
 }
 
 // Encode function is the primary encode method for SGN
-func encode(encoder sgn.Encoder, payload []byte) ([]byte, error) {
+func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 	red := color.New(color.Bold, color.FgRed).SprintfFunc()
 	green := color.New(color.Bold, color.FgGreen).SprintfFunc()
 

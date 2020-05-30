@@ -34,8 +34,8 @@ var ConditionalJumpMnemonics = []string{
 	"JZ",
 }
 
-// GarbageMnemonics array containing instructions
-// that does not affect the overall execution of the program
+// GarbageMnemonics array containing safe garbage instructions
+// that does not munipulate registers or stack (do not affect the overall execution of the program)
 // !!! These instructions must not clobber registers or stack flags may be affected !!!
 var GarbageMnemonics = []string{
 	";", // no instruction (empty)
@@ -84,8 +84,12 @@ var GarbageMnemonics = []string{
 	"CMOVNBE {R},{R}",
 	"CMOVNLE {R},{R}",
 	"CMOVNGE {R},{R}",
+	// Recursion starts here...
+	"{F}",  // Garbage function
+	"{UG}", // Unsafe garbage instructions
 	"JMP {L};{G};{L}:",
 	"NOT {R};{G};NOT {R}",
+	"NEG {R};{G};NEG {R}",
 	"INC {R};{G};DEC {R}",
 	"DEC {R};{G};INC {R}",
 	"PUSH {R};{G};POP {R}",
@@ -93,11 +97,86 @@ var GarbageMnemonics = []string{
 	"ADD {R},{K};{G};SUB {R},{K}",
 	"SUB {R},{K};{G};ADD {R},{K}",
 	"ROR {R},{K};{G};ROL {R},{K}",
-	"ROL {R},{K};{G};ROR {R},{K}"}
-	//"PUSH EBP;MOV EBP,ESP;{G};MOV ESP,EBP;POP EBP"} // function prologue/apilogue, doesn't compile if arch == 64
+	"ROL {R},{K};{G};ROR {R},{K}",
+}
+
+// "LEA",
+// "NOT",
+// "NEG",
+// "INC",
+// "DEC"
+
+// UnsafeRmMnemonics array contains operands that manipulate the given destination register with a given register or memory location operator(r/m/32/64)
+var UnsafeRmMnemonics = []string{
+	"OR",
+	"ADD",
+	"SUB",
+	"XOR",
+	"AND",
+	"MOV",
+	"SBB",
+	"BSR",
+	"BSF",
+	"ADCX",
+	"ADOX",
+	"BLSR",
+	"TEST",
+	"CMOVA",
+	"CMOVB",
+	"CMOVC",
+	"CMOVE",
+	"CMOVG",
+	"CMOVL",
+	"CMOVO",
+	"CMOVP",
+	"CMOVS",
+	"CMOVZ",
+	"BLSMSK",
+	"CMOVAE",
+	"CMOVGE",
+	"CMOVLE",
+	"CMOVNA",
+	"CMOVNB",
+	"CMOVNC",
+	"CMOVNE",
+	"CMOVNG",
+	"CMOVNL",
+	"CMOVNO",
+	"CMOVNP",
+	"CMOVNS",
+	"CMOVNZ",
+	"CMOVPE",
+	"CMOVPO",
+	"CMOVBE",
+	"CMOVNAE",
+	"CMOVNBE",
+	"CMOVNLE",
+	"CMOVNGE",
+}
+
+// UnsafeImmMnemonics array contains operands that manipulate the given destination register with a given immidiate value operator
+var UnsafeImmMnemonics = []string{
+	"OR",
+	"ADC",
+	"ADD",
+	"AND",
+	"BT",
+	"BTC",
+	"BTR",
+	"BTS",
+	"IMUL",
+	"RCL",
+	"RCR",
+	"ROL",
+	"ROR",
+	"SBB",
+	"MOV",
+	"SUB",
+	"XOR",
+	"IMUL",
+}
 
 // JMP 2 -> Jumps to next instruction
-
 func addGarbageJumpMnemonics() {
 	for _, i := range ConditionalJumpMnemonics {
 		GarbageMnemonics = append(GarbageMnemonics, i+" 2")
