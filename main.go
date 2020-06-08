@@ -35,7 +35,7 @@ func main() {
 	output := flag.String("o", "", "Encoded output binary name")
 	arch := flag.Int("a", 32, "Binary architecture (32/64)")
 	encCount := flag.Int("c", 1, "Number of times to encode the binary (increases overall size)")
-	obsLevel := flag.Int("max", 50, "Maximum number of bytes for obfuscation")
+	obsLevel := flag.Int("max", 20, "Maximum number of bytes for obfuscation")
 	encDecoder := flag.Bool("plain-decoder", false, "Do not encode the decoder stub")
 	asciPayload := flag.Bool("asci", false, "Generates a full ASCI printable payload (takes very long time to bruteforce)")
 	saveRegisters := flag.Bool("safe", false, "Do not modify any register values")
@@ -70,10 +70,10 @@ func main() {
 	printVerbose("ASCII Mode: " + strconv.FormatBool(*asciPayload))
 	printVerbose("Plain Decoder: " + strconv.FormatBool(encoder.PlainDecoder))
 	printVerbose("Safe Registers: " + strconv.FormatBool(encoder.SaveRegisters))
-
 	// Calculate evarage garbage instrunction size
 	average, err := encoder.CalculateAverageGarbageInstructionSize()
 	eror(err)
+
 	printVerbose("Avg. Garbage Size: " + fmt.Sprintf("%f", average))
 
 	if *badChars != "" || *asciPayload {

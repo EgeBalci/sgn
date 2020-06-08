@@ -42,8 +42,8 @@ data:
 func (encoder *Encoder) NewDecoderAssembly(payload []byte) string {
 
 	decoder := STUB[encoder.architecture]
-	reg := encoder.SafeRandomRegister(encoder.architecture/8, "ECX")
-	regL := encoder.SafeRandomRegister(1, reg, "CL")
+	reg := encoder.GetSafeRandomRegister(encoder.architecture, "ECX")
+	regL := encoder.GetSafeRandomRegister(8, reg, "CL")
 
 	decoder = strings.ReplaceAll(decoder, "{R}", reg)
 	decoder = strings.ReplaceAll(decoder, "{RL}", regL)
@@ -81,21 +81,27 @@ func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte,
 	}
 	payload = append(garbage, payload...)
 
-	reg := encoder.RandomRegister(encoder.architecture / 8)
+	reg := encoder.GetRandomRegister(encoder.architecture)
 
 	// Toss a coin for get the garbage+decoder address to register by pop or mov
 	if CoinFlip() {
-		pop, ok := encoder.Assemble(fmt.Sprintf("pop %s;", reg)) // !!
+		pop, ok := encoder.Assemble(fmt.Sprintf("POP %s;", reg)) // !!
 		if !ok {
 			return nil, errors.New("schema decoder assembly failed")
 		}
 		payload = append(payload, pop...)
 	} else {
-		mov, ok := encoder.Assemble(fmt.Sprintf("mov %s,[esp];", reg)) // !!
+		mov, ok := encoder.Assemble(fmt.Sprintf("MOV %s,[%s];", reg, encoder.GetStackPointer())) // !!
 		if !ok {
 			return nil, errors.New("schema decoder assembly failed")
 		}
-		payload = append(payload, mov...)
+
+		sub, ok := encoder.Assemble(fmt.Sprintf("SUB %s,0x%x;", encoder.GetStackPointer(), encoder.architecture/8)) // !!
+		if !ok {
+			return nil, errors.New("schema decoder assembly failed")
+		}
+
+		payload = append(payload, append(mov, sub...)...)
 	}
 
 	for _, cursor := range schema {
@@ -109,9 +115,9 @@ func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte,
 
 		stepAssembly := ""
 		if cursor.Key == nil {
-			stepAssembly += fmt.Sprintf("\t%s dword ptr [%s+0x%x];\n", cursor.OP, reg, index)
+			stepAssembly += fmt.Sprintf("\t%s DWORD PTR [%s+0x%x];\n", cursor.OP, reg, index)
 		} else {
-			stepAssembly += fmt.Sprintf("\t%s dword ptr [%s+0x%x],0x%x;\n", cursor.OP, reg, index, binary.BigEndian.Uint32(cursor.Key))
+			stepAssembly += fmt.Sprintf("\t%s DWORD PTR [%s+0x%x],0x%x;\n", cursor.OP, reg, index, binary.BigEndian.Uint32(cursor.Key))
 		}
 		//fmt.Println(stepAssembly)
 		decipherStep, ok := encoder.Assemble(stepAssembly)

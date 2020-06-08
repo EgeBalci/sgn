@@ -18,6 +18,18 @@ type REG struct {
 	Arch     int
 }
 
+// INSTRUCTION contains instuction information
+// Intel syntax mandates "When two operands are present in an arithmetic or logical instruction, the right operand is the source and the left
+// operand is the destination." for our case first operand will allways will be considered destination operand
+type INSTRUCTION struct {
+	Mnemonic string `json:"Mnemonic"`
+	V64      bool   `json:"V64"`
+	V32      bool   `json:"V32"`
+	Operands []struct {
+		Types []string `json:"Types"`
+	} `json:"Operands"`
+}
+
 // Initialize the register values
 func init() {
 
@@ -60,9 +72,6 @@ func init() {
 	SafeRegisterSuffix[32] = safeX86Suffix
 	SafeRegisterSuffix[64] = safeX64Suffix
 
-	// Increase random garbage instruction generation pool
-	addGarbageJumpMnemonics()
-
 	// Set random seed
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -102,17 +111,17 @@ var safeX64Suffix = []byte{
 // REGS contains 32/64 bit registers
 var REGS map[int][]REG
 
-// RandomRegister returns a random register name based on given size and architecture
-func (encoder Encoder) RandomRegister(size int) string {
+// GetRandomRegister returns a random register name based on given size and architecture
+func (encoder Encoder) GetRandomRegister(size int) string {
 
 	switch size {
-	case 1:
-		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Low
-	case 2:
-		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].High
-	case 4:
-		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Extended
 	case 8:
+		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Low
+	case 16:
+		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].High
+	case 32:
+		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Extended
+	case 64:
 		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Full
 	default:
 		panic("invalid register size")
@@ -158,8 +167,8 @@ func (encoder Encoder) GetBasePointer() string {
 
 }
 
-// SafeRandomRegister returns a random register amoung all (registers-excluded parameters) based on given size
-func (encoder Encoder) SafeRandomRegister(size int, excludes ...string) string {
+// GetSafeRandomRegister returns a random register amoung all (registers-excluded parameters) based on given size
+func (encoder Encoder) GetSafeRandomRegister(size int, excludes ...string) string {
 
 	for {
 		r := REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))]
@@ -167,13 +176,13 @@ func (encoder Encoder) SafeRandomRegister(size int, excludes ...string) string {
 			if r.Full != exclude && r.Extended != exclude && r.High != exclude && r.Low != exclude {
 				if i == len(excludes)-1 {
 					switch size {
-					case 1:
-						return r.Low
-					case 2:
-						return r.High
-					case 4:
-						return r.Extended
 					case 8:
+						return r.Low
+					case 16:
+						return r.High
+					case 32:
+						return r.Extended
+					case 64:
 						return r.Full
 					default:
 						panic("invalid register size")
@@ -215,6 +224,40 @@ func (encoder Encoder) Assemble(asm string) ([]byte, bool) {
 	//log.Println(asm)
 	bin, _, ok := ks.Assemble(asm, 0)
 	return bin, ok
+}
+
+// GetAssemblySize assembes the given  instructions and returns the total instruction size
+// if assembly fails return value is -1
+func (encoder Encoder) GetAssemblySize(asm string) int {
+	var mode keystone.Mode
+	switch encoder.architecture {
+	case 32:
+		mode = keystone.MODE_32
+	case 64:
+		mode = keystone.MODE_64
+	default:
+		return -1
+	}
+
+	ks, err := keystone.New(keystone.ARCH_X86, mode)
+	if err != nil {
+		return -1
+	}
+	defer ks.Close()
+
+	//err = ks.Option(keystone.OPT_SYNTAX, keystone.OPT_SYNTAX_INTEL)
+	//err = ks.Option(keystone.OPT_SYNTAX, keystone.KS_OPT_SYNTAX_NASM)
+	err = ks.Option(keystone.OPT_SYNTAX, keystone.OPT_SYNTAX_INTEL)
+	if err != nil {
+		return -1
+	}
+	//log.Println(asm)
+	bin, _, ok := ks.Assemble(asm, 0)
+
+	if !ok {
+		return -1
+	}
+	return len(bin)
 }
 
 // GenerateIPToStack function generates instructions series that pushes the instruction pointer to stack

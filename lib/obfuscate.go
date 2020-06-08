@@ -1,8 +1,10 @@
 package sgn
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"strings"
 )
@@ -13,45 +15,47 @@ import (
 // {K} 	= RANDOM BYTE OF DATA
 // {L} 	= RANDOM ASM LABEL
 // {G} 	= RANDOM GARBAGE ASSEMBLY
-// {F} 	= RANDOM GARBAGE FUNCTION
-// {ST} = RANDOM STACK ADDRESS
-// {UG}	= RANDOM UNSAFE GARBAGE ASSEMBLY
 
 // GenerateGarbageAssembly generates random garbage instruction(s) assemblies
 // based on the subject encoder architecture
 func (encoder *Encoder) GenerateGarbageAssembly() string {
 
-	//registerSize := ((rand.Intn(encoder.Architecture/32) + 1) << 2)
-	randomGarbageAssembly := GarbageMnemonics[rand.Intn(len(GarbageMnemonics))]
-
-	/* !!! ORDER IS IMPORTANT !!! */
-
-	if strings.Contains(randomGarbageAssembly, "{R}") {
-		register := encoder.RandomRegister(encoder.architecture / 8)
+	switch rand.Intn(4) {
+	case 1:
+		randomGarbageAssembly := GetRandomSafeAssembly()
+		register := encoder.GetRandomRegister(encoder.architecture)
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{R}", register)
-	}
-
-	if strings.Contains(randomGarbageAssembly, "{K}") {
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{K}", fmt.Sprintf("0x%x", RandomByte()))
-	}
-
-	if strings.Contains(randomGarbageAssembly, "{L}") {
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{L}", RandomLabel())
-	}
-
-	if strings.Contains(randomGarbageAssembly, "{F}") {
-		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{F}", encoder.GenerateGarbageFunctionAssembly())
-	}
-
-	if strings.Contains(randomGarbageAssembly, "{G}") {
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{G}", encoder.GenerateGarbageAssembly())
+		return randomGarbageAssembly + ";"
+	case 2:
+		return encoder.GetRandomFunctionAssembly()
+	case 3:
+		randRegister := encoder.GetSafeRandomRegister(encoder.architecture, encoder.GetStackPointer())
+		// Save the destination register
+		// After saving the target register to stack we can munipulate the register unlimited times
+		unsafeGarbageAssembly := fmt.Sprintf("PUSH %s;", randRegister)
+		if CoinFlip() {
+			unsafeGarbageAssembly += encoder.GenerateGarbageAssembly()
+		}
+		unsafeGarbageAssembly += encoder.GetRandomUnsafeAssembly(randRegister)
+		// Keep adding unsafe garbage by chance
+		for {
+			if CoinFlip() {
+				unsafeGarbageAssembly += encoder.GetRandomUnsafeAssembly(randRegister)
+			} else {
+				break
+			}
+		}
+		if CoinFlip() {
+			unsafeGarbageAssembly += encoder.GenerateGarbageAssembly()
+		}
+		unsafeGarbageAssembly += fmt.Sprintf("POP %s;", randRegister)
+		return unsafeGarbageAssembly
+	default:
+		return ";"
 	}
-
-	if strings.Contains(randomGarbageAssembly, "{UG}") {
-		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{UG}", encoder.GenerateUnsafeGarbageAssembly())
-	}
-
-	return randomGarbageAssembly + ";"
 }
 
 // GenerateGarbageInstructions generates random garbage instruction(s)
@@ -61,6 +65,7 @@ func (encoder *Encoder) GenerateGarbageInstructions() ([]byte, error) {
 	randomGarbageAssembly := encoder.GenerateGarbageAssembly()
 	garbage, ok := encoder.Assemble(randomGarbageAssembly)
 	if !ok {
+		//fmt.Println(randomGarbageAssembly)
 		return nil, errors.New("random garbage instruction assembly failed")
 	}
 
@@ -76,75 +81,185 @@ func (encoder *Encoder) GenerateGarbageInstructions() ([]byte, error) {
 		}
 	}
 
-	randomGarbageAssembly = encoder.GenerateGarbageAssembly()
-	garbage2, ok := encoder.Assemble(randomGarbageAssembly)
-	if !ok {
-		return nil, errors.New("random garbage instruction assembly failed")
-	}
-	garbage = append(garbage, garbage2...)
-
 	if len(garbage) <= encoder.ObfuscationLimit {
+		//fmt.Println(randomGarbageAssembly)
 		return garbage, nil
 	}
 
 	return encoder.GenerateGarbageInstructions()
 }
 
-// GenerateUnsafeGarbageAssembly generates random unsafe garbage instruction(s) assemblies
-// based on the subject encoder architecture
-func (encoder *Encoder) GenerateUnsafeGarbageAssembly() string {
+// GetRandomSafeAssembly return a safe garbage instruction assembly
+func GetRandomSafeAssembly() string {
 
-	destRegister := encoder.RandomRegister(encoder.architecture / 8)
-	unsafeGarbageAssembly := ""
-
-	unsafeGarbageAssembly += fmt.Sprintf("PUSH %s;", destRegister)
-	// After saving the target register to stack we can munipulate the register unlimited times
-	if CoinFlip() {
-		unsafeGarbageAssembly += encoder.GenerateGarbageAssembly()
+	newSafeGarbageInstructions := SafeGarbageInstructions
+	// Add garbage confditional jumps for more possibility
+	for _, jmp := range ConditionalJumpMnemonics {
+		newSafeGarbageInstructions = append(newSafeGarbageInstructions, jmp+" {L};{G};{L}:")
+		//newSafeGarbageInstructions = append(newSafeGarbageInstructions, jmp+" 2")
 	}
+	return newSafeGarbageInstructions[rand.Intn(len(SafeGarbageInstructions))]
+}
 
-	// Add first unsafe garbage
-	switch rand.Intn(3) {
-	case 0:
-		unsafeGarbageAssembly += fmt.Sprintf("%s %s,%s;", UnsafeRmMnemonics[rand.Intn(len(UnsafeRmMnemonics))], destRegister, encoder.RandomRegister(encoder.architecture/8))
-	case 1:
-		unsafeGarbageAssembly += fmt.Sprintf("%s %s,%s;", UnsafeRmMnemonics[rand.Intn(len(UnsafeRmMnemonics))], destRegister, encoder.GetRandomStackAddress())
-	case 2:
-		unsafeGarbageAssembly += fmt.Sprintf("%s %s,0x%x;", UnsafeImmMnemonics[rand.Intn(len(UnsafeImmMnemonics))], destRegister, RandomByte()%127)
-	}
+// GetRandomUnsafeAssembly return a safe garbage instruction assembly
+func (encoder *Encoder) GetRandomUnsafeAssembly(destReg string) string {
 
-	// Keep adding unsafe garbage by chance
-	for {
-		if CoinFlip() {
-			unsafeGarbageAssembly += encoder.GenerateGarbageAssembly()
-		}
-
-		if CoinFlip() {
-			switch rand.Intn(3) {
-			case 0:
-				unsafeGarbageAssembly += fmt.Sprintf("%s %s,%s;", UnsafeRmMnemonics[rand.Intn(len(UnsafeRmMnemonics))], destRegister, encoder.RandomRegister(encoder.architecture/8))
-			case 1:
-				unsafeGarbageAssembly += fmt.Sprintf("%s %s,%s;", UnsafeRmMnemonics[rand.Intn(len(UnsafeRmMnemonics))], destRegister, encoder.GetRandomStackAddress())
-			case 2:
-				unsafeGarbageAssembly += fmt.Sprintf("%s %s,0x%x;", UnsafeImmMnemonics[rand.Intn(len(UnsafeImmMnemonics))], destRegister, RandomByte()%127)
+	// Random register size between 8-16-32-64
+	randRegSize := int(math.Pow(2, float64(rand.Intn(3+(encoder.architecture/64))+3)))
+	subReg := ""
+	for _, i := range REGS[encoder.architecture] {
+		if (encoder.architecture == 32 && i.Extended == destReg) || (encoder.architecture == 64 && i.Full == destReg) {
+			switch randRegSize {
+			case 8:
+				subReg = i.Low
+			case 16:
+				subReg = i.High
+			case 32:
+				subReg = i.Extended
+			case 64:
+				subReg = i.Full
 			}
-		} else {
-			break
 		}
 	}
 
-	if CoinFlip() {
-		unsafeGarbageAssembly += encoder.GenerateGarbageAssembly()
+	if subReg == "" {
+		panic("invalid register selected")
 	}
-	unsafeGarbageAssembly += fmt.Sprintf("POP %s;", destRegister)
-	return unsafeGarbageAssembly + ";"
+
+	// Add first unsafe garbage.
+	newUnsafeMnemonic := encoder.GetRandomUnsafeMnemonic(randRegSize)
+	// Generate a random operand value based on a random oprerand type of the selected instruction
+	operand := encoder.GetRandomOperandValue(newUnsafeMnemonic.GetRandomMatchingOperandType(randRegSize))
+	unsafeGarbageAssembly := fmt.Sprintf("%s %s,%s;", newUnsafeMnemonic.Mnemonic, subReg, operand)
+
+	return unsafeGarbageAssembly
+}
+
+// GetRandomUnsafeMnemonic returns a random unsafe instruction based on the encoder architecture and operand number/type
+// Currently SGN only supports instructions with 2 parameter
+func (encoder *Encoder) GetRandomUnsafeMnemonic(opRegSize int) *INSTRUCTION {
+
+	// UnsafeInstructions contains instructions that manipulate certain registers/stack/memory
+	var UnsafeInstructions []INSTRUCTION
+
+	err := json.NewDecoder(strings.NewReader(INSTRUCTIONS)).Decode(&UnsafeInstructions)
+	if err != nil {
+		panic(err)
+	}
+
+	new := UnsafeInstructions[rand.Intn(len(UnsafeInstructions))]
+	if ((new.V32 && encoder.GetArchitecture() == 32) || (new.V64 && encoder.GetArchitecture() == 64)) && len(new.Operands) == 2 {
+		if include(new.Operands[0].Types, fmt.Sprintf("r/m%d", opRegSize)) || include(new.Operands[0].Types, fmt.Sprintf("r%d", opRegSize)) {
+			// for _, ope := range new.Operands[1].Types {
+			// 	// Mnemonic operand types include one of the unsupported types abot !
+			// 	// because it may be the only combination for valid assembly
+			// 	if !include(SupportedOperandTypes, ope) {
+			// 		return encoder.GetRandomUnsafeMnemonic(opRegSize)
+			// 	}
+			// }
+			return &new
+
+		}
+	}
+	return encoder.GetRandomUnsafeMnemonic(opRegSize)
+
+}
+
+// GetRandomOperandValue generates a instruction parameter value based on given operand type
+// Only some operand types are considered because SGN only uses 32-64 bit registers
+func (encoder *Encoder) GetRandomOperandValue(operandType string) string {
+
+	switch operandType {
+	case "imm8":
+		return fmt.Sprintf("0x%x", RandomByte()%127)
+	case "imm16":
+		return fmt.Sprintf("0x%x", rand.Intn(32767))
+	case "imm32":
+		return fmt.Sprintf("0x%x", rand.Int31n((2147483647)))
+	case "imm64":
+		return fmt.Sprintf("0x%x", RandomBytes(8))
+	case "r8":
+		return encoder.GetRandomRegister(8)
+	case "r16":
+		return encoder.GetRandomRegister(16)
+	case "r32":
+		return encoder.GetRandomRegister(32)
+	case "r64":
+		return encoder.GetRandomRegister(64)
+	case "r/m8":
+		if CoinFlip() {
+			return encoder.GetRandomOperandValue("m8")
+		}
+		return encoder.GetRandomRegister(8)
+	case "r/m16":
+		if CoinFlip() {
+			return encoder.GetRandomOperandValue("m16")
+		}
+		return encoder.GetRandomRegister(16)
+	case "r/m32":
+		if CoinFlip() {
+			return encoder.GetRandomOperandValue("m32")
+		}
+		return encoder.GetRandomRegister(32)
+	case "r/m64":
+		if CoinFlip() {
+			return encoder.GetRandomOperandValue("m64")
+		}
+		return encoder.GetRandomRegister(64)
+	case "m":
+		return encoder.GetRandomStackAddress()
+	case "m8":
+		return fmt.Sprintf("BYTE PTR %s", encoder.GetRandomStackAddress())
+	case "m16":
+		return fmt.Sprintf("WORD PTR %s", encoder.GetRandomStackAddress())
+	case "m32":
+		return fmt.Sprintf("DWORD PTR %s", encoder.GetRandomStackAddress())
+	case "m64":
+		return fmt.Sprintf("QWORD PTR %s", encoder.GetRandomStackAddress())
+	case "RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI", "EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI", "AX", "CX", "DX", "BX", "SP", "BP", "SI", "DI", "AH", "AL", "CH", "CL", "DH", "DL", "BH", "BL", "SPL", "BPL", "SIL", "DIL":
+		return operandType
+	default:
+		panic("unsupported instruction operand type: " + operandType)
+	}
+}
+
+// GetRandomMatchingOperandType randomly selects a operand type for subject instruction
+func (ins *INSTRUCTION) GetRandomMatchingOperandType(srcRegSize int) string {
+	if len(ins.Operands) != 2 {
+		panic(errors.New("instruction operand index out of range"))
+	}
+	if len(ins.Operands[0].Types) == 0 || len(ins.Operands[1].Types) == 0 {
+		panic(errors.New("instruction operand has no type"))
+	}
+	if len(ins.Operands[0].Types) != len(ins.Operands[1].Types) {
+		panic(errors.New("unsupported instruction operand types"))
+	}
+
+	index := []int{}
+
+	for i, j := range ins.Operands[0].Types {
+		if j == fmt.Sprintf("r/m%d", srcRegSize) || j == fmt.Sprintf("r%d", srcRegSize) {
+			index = append(index, i)
+		}
+	}
+
+	return ins.Operands[1].Types[index[rand.Intn(len(index))]]
+}
+
+func include(arr []string, str string) bool {
+	for _, i := range arr {
+		if i == str {
+			return true
+		}
+	}
+	return false
 }
 
 // CalculateAverageGarbageInstructionSize calculate the avarage size of generated random garbage instructions
 func (encoder *Encoder) CalculateAverageGarbageInstructionSize() (float64, error) {
 
 	var average float64 = 0
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		randomGarbageAssembly := encoder.GenerateGarbageAssembly()
 		garbage, ok := encoder.Assemble(randomGarbageAssembly)
 		if !ok {
@@ -152,12 +267,22 @@ func (encoder *Encoder) CalculateAverageGarbageInstructionSize() (float64, error
 		}
 		average += float64(len(garbage))
 	}
-	average = average / 1000
+	average = average / 100
 	return average, nil
 }
 
-// GenerateGarbageFunctionAssembly generates a function frame assembly with garbage instructions inside
-func (encoder *Encoder) GenerateGarbageFunctionAssembly() string {
+func (encoder *Encoder) debugAssembly(str string) string {
+	for _, i := range strings.Split(str, ";") {
+		_, ok := encoder.Assemble(i)
+		if !ok {
+			return i
+		}
+	}
+	return ""
+}
+
+// GetRandomFunctionAssembly generates a function frame assembly with garbage instructions inside
+func (encoder *Encoder) GetRandomFunctionAssembly() string {
 
 	bp := ""
 	sp := ""
@@ -176,7 +301,7 @@ func (encoder *Encoder) GenerateGarbageFunctionAssembly() string {
 	prologue := ""
 	prologue += fmt.Sprintf("PUSH %s;", bp)
 	prologue += fmt.Sprintf("MOV %s,%s;", bp, sp)
-	prologue += fmt.Sprintf("SUB %s,0x%d;", sp, int(RandomByte()))
+	prologue += fmt.Sprintf("SUB %s,0x%x;", sp, RandomByte())
 
 	// Fill the function body with garbage instructions
 	garbage := encoder.GenerateGarbageAssembly()
@@ -184,7 +309,6 @@ func (encoder *Encoder) GenerateGarbageFunctionAssembly() string {
 	epilogue := ""
 	epilogue += fmt.Sprintf("MOV %s,%s;", sp, bp)
 	epilogue += fmt.Sprintf("POP %s;", bp)
-	epilogue += "RET;"
 
 	return prologue + garbage + epilogue
 }
