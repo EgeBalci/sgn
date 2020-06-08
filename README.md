@@ -87,7 +87,7 @@ Usage: sgn [OPTIONS] <FILE>
     	Number of times to encode the binary (increases overall size) (default 1)
   -h	Print help
   -max int
-    	Maximum number of bytes for obfuscation (default 50)
+    	Maximum number of bytes for obfuscation (default 20)
   -o string
     	Encoded output binary name
   -plain-decoder
