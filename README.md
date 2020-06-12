@@ -22,7 +22,7 @@ For offensive security community, the original implementation of shikata ga nai 
 
 **Dependencies:**
 
-Only dependencies required is keystone and capstone libraries. For easily installing capstone libarary check the table;
+Only dependencies required is keystone and capstone libraries. For easily installing capstone and keystone libararies check the table below;
 
 
 <table>
@@ -35,16 +35,16 @@ Only dependencies required is keystone and capstone libraries. For easily instal
       <td>sudo apt-get install libcapstone-dev</td>
   </tr>
   <tr>
+      <td>Arch Linux</td>
+      <td>sudo pacman -S capstone keystone</td>
+  </tr>
+  <tr>
       <td>Mac</td>
-      <td>brew install capstone</td>
+      <td>brew install keystone capstone</td>
   </tr>
   <tr>
-      <td>FreeBSD</td>
-      <td>pkg install capstone</td>
-  </tr>
-  <tr>
-      <td>OpenBSD</td>
-      <td>sudo pkg_add capstone</td>
+      <td>Fedora</td>
+      <td>sudo yum install keystone capstone</td>
   </tr>
   <tr>
       <td>Windows/All Other...</td>
@@ -52,7 +52,7 @@ Only dependencies required is keystone and capstone libraries. For easily instal
   </tr>
 </table>
 
-Installation of keystone library can be little tricky in some cases. [Check here](https://github.com/keystone-engine/keystone/blob/master/docs/COMPILE.md) for keystone library installation guides.
+Installation of keystone library can be little tricky in some cases. [Check here](https://github.com/keystone-engine/keystone/blob/master/docs/COMPILE.md) if you have any problem with yor packet manager.
 
 Then just go get it ツ
 
