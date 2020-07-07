@@ -187,7 +187,7 @@ func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 
 	if encoder.EncodingCount > 1 {
 		encoder.EncodingCount--
-		return encode(encoder, payload)
+		return encode(encoder, final)
 	}
 
 	if encoder.SaveRegisters {
