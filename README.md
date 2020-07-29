@@ -20,6 +20,8 @@ For offensive security community, the original implementation of shikata ga nai 
 
 ## Install
 
+You can get the pre-compiled binaries [HERE](https://github.com/EgeBalci/sgn/releases). For building from source follow the steps bellow.
+
 **Dependencies:**
 
 Only dependencies required is keystone and capstone libraries. For easily installing capstone and keystone libararies check the table below;
@@ -58,6 +60,15 @@ Then just go get it ツ
 
 ```
 go get github.com/egebalci/sgn
+```
+
+***DOCKER INSTALL***
+
+[![Docker](http://dockeri.co/image/egee/sgn)](https://hub.docker.com/r/egee/sgn/)
+
+```
+docker pull egee/amber
+docker run -it egee/amber
 ```
 
 **Usage**
