@@ -20,6 +20,8 @@ For offensive security community, the original implementation of shikata ga nai 
 
 ## Install
 
+You can get the pre-compiled binaries [HERE](https://github.com/EgeBalci/sgn/releases). For building from source follow the steps bellow.
+
 **Dependencies:**
 
 Only dependencies required is keystone and capstone libraries. For easily installing capstone and keystone libararies check the table below;
@@ -60,6 +62,15 @@ Then just go get it ツ
 go get github.com/egebalci/sgn
 ```
 
+***DOCKER INSTALL***
+
+[![Docker](http://dockeri.co/image/egee/sgn)](https://hub.docker.com/r/egee/sgn/)
+
+```
+docker pull egee/sgn
+docker run -it egee/sgn
+```
+
 **Usage**
 
 `-h` is pretty self explanatory use `-v` if you want to see what's going on behind the scenes `( ͡° ͜ʖ ͡°)_/¯`
@@ -97,6 +108,11 @@ Usage: sgn [OPTIONS] <FILE>
   -v	More verbose output
 ```
 
+***Docker Usage***
+
+```
+docker run -it -v /tmp/:/tmp/ sgn /tmp/shellcode
+```
 
 ## Using As Library
 Warning !! SGN package is still under development for better performance and several improvements. Most of the functions are subject to change.
