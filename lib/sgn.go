@@ -18,7 +18,7 @@ type REG struct {
 	Arch     int
 }
 
-// INSTRUCTION contains instuction information
+// INSTRUCTION contains instruction information
 // Intel syntax mandates "When two operands are present in an arithmetic or logical instruction, the right operand is the source and the left
 // operand is the destination." for our case first operand will allways will be considered destination operand
 type INSTRUCTION struct {

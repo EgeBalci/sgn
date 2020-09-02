@@ -298,16 +298,14 @@ func (encoder *Encoder) GetRandomFunctionAssembly() string {
 		panic(errors.New("invalid architecture selected"))
 	}
 
-	prologue := ""
-	prologue += fmt.Sprintf("PUSH %s;", bp)
+	prologue := fmt.Sprintf("PUSH %s;", bp)
 	prologue += fmt.Sprintf("MOV %s,%s;", bp, sp)
 	prologue += fmt.Sprintf("SUB %s,0x%x;", sp, RandomByte())
 
 	// Fill the function body with garbage instructions
 	garbage := encoder.GenerateGarbageAssembly()
 
-	epilogue := ""
-	epilogue += fmt.Sprintf("MOV %s,%s;", sp, bp)
+	epilogue := fmt.Sprintf("MOV %s,%s;", sp, bp)
 	epilogue += fmt.Sprintf("POP %s;", bp)
 
 	return prologue + garbage + epilogue
