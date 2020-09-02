@@ -167,7 +167,7 @@ func (encoder Encoder) GetBasePointer() string {
 
 }
 
-// GetSafeRandomRegister returns a random register amoung all (registers-excluded parameters) based on given size
+// GetSafeRandomRegister returns a random register among all (registers-excluded parameters) based on given size
 func (encoder Encoder) GetSafeRandomRegister(size int, excludes ...string) string {
 
 	for {
@@ -197,7 +197,7 @@ func (encoder Encoder) GetSafeRandomRegister(size int, excludes ...string) strin
 }
 
 // Assemble assembes the given instructions
-// and return a byte array with a boolean value indicating wether the operation is successfull or not
+// and return a byte array with a boolean value indicating wether the operation is successful or not
 func (encoder Encoder) Assemble(asm string) ([]byte, bool) {
 	var mode keystone.Mode
 	switch encoder.architecture {

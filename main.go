@@ -215,7 +215,7 @@ func eror(err error) {
 		if ok && details != nil {
 			log.Fatalf("[%s] ERROR: %s\n", strings.ToUpper(strings.Split(details.Name(), ".")[1]), err)
 		} else {
-			log.Fatalf("[UNKOWN] ERROR: %s\n", err)
+			log.Fatalf("[UNKNOWN] ERROR: %s\n", err)
 		}
 	}
 }
