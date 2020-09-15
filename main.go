@@ -92,21 +92,11 @@ func main() {
 			p, err := encode(encoder, file)
 			eror(err)
 
-			switch *asciPayload {
-			case true:
-				if !isASCIIPrintable(string(p)) {
-					continue
-				}
-			case false:
-				for b := range badBytes {
-					if strings.Contains(string(p), string(b)) {
-						continue
-					}
-				}
+			if (*asciPayload && isASCIIPrintable(string(p))) || (len(badBytes) > 0 && !containsBytes(p, badBytes)) {
+				payload = p
+				break
 			}
-
-			payload = p
-			break
+			encoder.Seed = (encoder.Seed + 1) % 255
 		}
 		s.Stop()
 		printStatus("Success ᕕ( ᐛ )ᕗ")
@@ -196,6 +186,16 @@ func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 	}
 
 	return final, nil
+}
+
+// checks if a bytes array contains any element of another byte array
+func containsBytes(data, bytes []byte) bool {
+	for _, b := range bytes {
+		if strings.Contains(string(data), string(b)) {
+			return true
+		}
+	}
+	return false
 }
 
 // checks if s is ascii and printable, aka doesn't include tab, backspace, etc.
