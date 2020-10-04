@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -188,10 +189,10 @@ func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 	return final, nil
 }
 
-// checks if a bytes array contains any element of another byte array
-func containsBytes(data, bytes []byte) bool {
-	for _, b := range bytes {
-		if strings.Contains(string(data), string(b)) {
+// checks if a byte array contains any element of another byte array
+func containsBytes(data, any []byte) bool {
+	for _, b := range any {
+		if bytes.Contains(data, []byte{b}) {
 			return true
 		}
 	}
