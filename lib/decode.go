@@ -31,8 +31,8 @@ const x64DecoderStub = `
 	MOV RCX,{S}
 	LEA {R},[RIP]
 decode:
-	XOR BYTE PTR [{R}+RCX+0xB],{RL}
-	ADD {RL},BYTE PTR [{R}+RCX+0xB]
+	XOR BYTE PTR [{R}+RCX+data-decode],{RL}
+	ADD {RL},BYTE PTR [{R}+RCX+data-decode]
 	LOOP decode
 data:
 `
