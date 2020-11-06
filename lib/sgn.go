@@ -134,9 +134,9 @@ func (encoder Encoder) GetRandomRegister(size int) string {
 func (encoder Encoder) GetRandomStackAddress() string {
 
 	if CoinFlip() {
-		return fmt.Sprintf("[%s+0x%x]", encoder.GetStackPointer(), RandomByte())
+		return fmt.Sprintf("[%s+0x%x]", encoder.GetStackPointer(), GetRandomByte())
 	}
-	return fmt.Sprintf("[%s-0x%x]", encoder.GetStackPointer(), RandomByte())
+	return fmt.Sprintf("[%s-0x%x]", encoder.GetStackPointer(), GetRandomByte())
 }
 
 // GetStackPointer returns the stack pointer register string based on the encoder architecture

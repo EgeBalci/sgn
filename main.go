@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -24,6 +23,7 @@ import (
 
 // Verbose output mode
 var Verbose bool
+var spinr = spinner.New(spinner.CharSets[9], 50*time.Millisecond)
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -61,30 +61,31 @@ func main() {
 	file, err := ioutil.ReadFile(input)
 	eror(err)
 
+	if !Verbose {
+		spinr.Start()
+	}
+
 	// Print encoder params...
-	printVerbose("Input: " + input)
-	printStatus("Input Size: " + strconv.Itoa(len(file)))
-	printVerbose("Architecture: x" + strconv.Itoa(encoder.GetArchitecture()))
-	printVerbose("Encode Count: " + strconv.Itoa(encoder.EncodingCount))
-	printVerbose("Max. Obfuscation Size: " + strconv.Itoa(encoder.ObfuscationLimit))
-	printVerbose("Bad Characters: " + *badChars)
-	printVerbose("ASCII Mode: " + strconv.FormatBool(*asciPayload))
-	printVerbose("Plain Decoder: " + strconv.FormatBool(encoder.PlainDecoder))
-	printVerbose("Safe Registers: " + strconv.FormatBool(encoder.SaveRegisters))
+	printVerbose("Architecture: x%d", encoder.GetArchitecture())
+	printVerbose("Encode Count: %d", encoder.EncodingCount)
+	printVerbose("Max. Obfuscation Size: %d", encoder.ObfuscationLimit)
+	printVerbose("Bad Characters: %x", *badChars)
+	printVerbose("ASCII Mode: %t", *asciPayload)
+	printVerbose("Plain Decoder: %t", encoder.PlainDecoder)
+	printVerbose("Safe Registers: %t", encoder.SaveRegisters)
 	// Calculate evarage garbage instrunction size
 	average, err := encoder.CalculateAverageGarbageInstructionSize()
 	eror(err)
-
-	printVerbose("Avg. Garbage Size: " + fmt.Sprintf("%f", average))
+	printVerbose("Avg. Garbage Size: %f", average)
 
 	if *badChars != "" || *asciPayload {
 
 		// Need to disable verbosity now
-		Verbose = false
-
-		s := spinner.New(spinner.CharSets[9], 50*time.Millisecond)
-		s.Suffix = " Bruteforcing bad characters..."
-		s.Start()
+		if Verbose {
+			spinr.Start()
+			Verbose = false
+		}
+		spinr.Suffix = " Bruteforcing bad characters..."
 
 		badBytes, err := hex.DecodeString(strings.ReplaceAll(*badChars, `\x`, ""))
 		eror(err)
@@ -99,24 +100,22 @@ func main() {
 			}
 			encoder.Seed = (encoder.Seed + 1) % 255
 		}
-		s.Stop()
+		spinr.Stop()
 		printStatus("Success ᕕ( ᐛ )ᕗ")
 	} else {
 		printVerbose("Encoding payload...")
-		p, err := encode(encoder, (file))
+		payload, err = encode(encoder, file)
 		eror(err)
-		for i := 0; i < *encCount-1; i++ {
-			printVerbose("Encoding payload...")
-			p, err = encode(encoder, p)
-			eror(err)
-		}
-		payload = p
 	}
 
+	spinr.Stop()
 	if *output == "" {
 		*output = input + ".sgn"
 	}
-	printStatus("Outfile: " + *output)
+
+	printStatus("Input: %s", input)
+	printStatus("Input Size: %d", len(file))
+	printStatus("Outfile: %s", *output)
 	out, err := os.OpenFile(*output, os.O_RDWR|os.O_CREATE, 0755)
 	eror(err)
 	_, err = out.Write(payload)
@@ -126,7 +125,7 @@ func main() {
 		color.Blue("\n" + hex.Dump(payload) + "\n")
 	}
 
-	printGood("Final size: " + strconv.Itoa(outputSize))
+	printGood("Final size: %d", outputSize)
 	printGood("All done ＼(＾O＾)／")
 }
 
@@ -134,10 +133,11 @@ func main() {
 func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 	red := color.New(color.Bold, color.FgRed).SprintfFunc()
 	green := color.New(color.Bold, color.FgGreen).SprintfFunc()
+	var final []byte
 
 	if encoder.SaveRegisters {
 		printVerbose("Adding safe register suffix...")
-		payload = append(payload, sgn.SafeRegisterSuffix[encoder.GetArchitecture()]...)
+		final = append(final, sgn.SafeRegisterSuffix[encoder.GetArchitecture()]...)
 	}
 
 	// Add garbage instrctions before the ciphered decoder stub
@@ -150,9 +150,8 @@ func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 
 	printVerbose("Ciphering payload...")
 	ciperedPayload := sgn.CipherADFL(payload, encoder.Seed)
-	decoderAssembly := encoder.NewDecoderAssembly(ciperedPayload)
-
-	printVerbose("Selected decoder: " + green("\n%s\n", decoderAssembly))
+	decoderAssembly := encoder.NewDecoderAssembly(len(ciperedPayload))
+	printVerbose("Selected decoder: %s", green("\n%s\n", decoderAssembly))
 	decoder, ok := encoder.Assemble(decoderAssembly)
 	if !ok {
 		return nil, errors.New("decoder assembly failed")
@@ -160,30 +159,31 @@ func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 
 	encodedPayload := append(decoder, ciperedPayload...)
 	if encoder.PlainDecoder {
-		if encoder.SaveRegisters && encoder.EncodingCount == 1 {
-			encodedPayload = append(sgn.SafeRegisterPrefix[encoder.GetArchitecture()], encodedPayload...)
+		final = encodedPayload
+	} else {
+		schemaSize := ((len(encodedPayload) - len(ciperedPayload)) / (encoder.GetArchitecture() / 8)) + 1
+		randomSchema := encoder.NewCipherSchema(schemaSize)
+		printVerbose("Cipher schema: %s", red("\n\n%s", sgn.GetSchemaTable(randomSchema)))
+		obfuscatedEncodedPayload := encoder.SchemaCipher(encodedPayload, 0, randomSchema)
+		final, err = encoder.AddSchemaDecoder(obfuscatedEncodedPayload, randomSchema)
+		if err != nil {
+			return nil, err
 		}
-		return encodedPayload, nil
-	}
 
-	schemaSize := ((len(encodedPayload) - len(ciperedPayload)) / (encoder.GetArchitecture() / 8)) + 1
-	randomSchema := encoder.NewCipherSchema(schemaSize)
-
-	printVerbose("Cipher schema: " + red("\n\n%s", sgn.GetSchemaTable(randomSchema)))
-	obfuscatedEncodedPayload := encoder.SchemaCipher(encodedPayload, 0, randomSchema)
-	final, err := encoder.AddSchemaDecoder(obfuscatedEncodedPayload, randomSchema)
-	if err != nil {
-		return nil, err
-	}
-
-	if encoder.EncodingCount > 1 {
-		encoder.EncodingCount--
-		return encode(encoder, final)
 	}
 
 	if encoder.SaveRegisters {
 		printVerbose("Adding safe register prefix...")
 		final = append(sgn.SafeRegisterPrefix[encoder.GetArchitecture()], final...)
+	}
+
+	if encoder.EncodingCount > 1 {
+		encoder.EncodingCount--
+		encoder.Seed = sgn.GetRandomByte()
+		final, err = encode(encoder, final)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return final, nil
@@ -221,27 +221,26 @@ func eror(err error) {
 	}
 }
 
-func printStatus(msg string) {
+func printStatus(format string, a ...interface{}) {
 	yellow := color.New(color.Bold, color.FgYellow).PrintfFunc()
-	white := color.New(color.FgWhite).PrintfFunc()
-
 	yellow("[*] ")
-	white("%s\n", msg)
+	fmt.Printf(format+"\n", a...)
 }
 
-func printGood(msg string) {
+func printGood(format string, a ...interface{}) {
 	green := color.New(color.Bold, color.FgGreen).PrintfFunc()
-	white := color.New(color.FgWhite).PrintfFunc()
 	green("[+] ")
-	white("%s\n", msg)
+	fmt.Printf(format+"\n", a...)
 }
 
-func printVerbose(msg string) {
-	white := color.New(color.FgWhite).PrintfFunc()
-	yellow := color.New(color.Bold, color.FgYellow)
+func printVerbose(format string, a ...interface{}) {
 	if Verbose {
+		yellow := color.New(color.Bold, color.FgYellow)
 		yellow.Print("[*] ")
-		white("%s\n", msg)
+		fmt.Printf(format+"\n", a...)
+	}
+	if !strings.Contains(format, ":") {
+		spinr.Suffix = fmt.Sprintf(" "+format, a...)
 	}
 }
 

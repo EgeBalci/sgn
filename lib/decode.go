@@ -29,17 +29,17 @@ data:
 const x64DecoderStub = `
 	MOV {RL},{K}
 	MOV RCX,{S}
-	LEA {R},[RIP]
+	LEA {R},[RIP+data-1]
 decode:
-	XOR BYTE PTR [{R}+RCX+data-decode],{RL}
-	ADD {RL},BYTE PTR [{R}+RCX+data-decode]
+	XOR BYTE PTR [{R}+RCX],{RL}
+	ADD {RL},BYTE PTR [{R}+RCX]
 	LOOP decode
 data:
 `
 
 // NewDecoderAssembly creates a unobfuscated decoder stub to the given encoded payload
 // with the given architecture and seed value
-func (encoder *Encoder) NewDecoderAssembly(payload []byte) string {
+func (encoder *Encoder) NewDecoderAssembly(payloadSize int) string {
 
 	decoder := STUB[encoder.architecture]
 	reg := encoder.GetSafeRandomRegister(encoder.architecture, "ECX")
@@ -48,10 +48,19 @@ func (encoder *Encoder) NewDecoderAssembly(payload []byte) string {
 	decoder = strings.ReplaceAll(decoder, "{R}", reg)
 	decoder = strings.ReplaceAll(decoder, "{RL}", regL)
 	decoder = strings.ReplaceAll(decoder, "{K}", fmt.Sprintf("0x%x", encoder.Seed))
-	decoder = strings.ReplaceAll(decoder, "{S}", fmt.Sprintf("0x%x", len(payload)))
+	decoder = strings.ReplaceAll(decoder, "{S}", fmt.Sprintf("0x%x", payloadSize))
 	//fmt.Println(decoder)
 	return decoder
+}
 
+// AddADFLDecoder creates decoder stub for binaries that are ciphered with CipherADFL function.
+func (encoder *Encoder) AddADFLDecoder(payload []byte) ([]byte, error) {
+	decoderAssembly := encoder.NewDecoderAssembly(len(payload))
+	decoder, ok := encoder.Assemble(decoderAssembly)
+	if !ok {
+		return nil, errors.New("decoder assembly failed")
+	}
+	return append(decoder, payload...), nil
 }
 
 // AddSchemaDecoder creates decoder stub for binaries that are ciphered with SchemaCipher function.

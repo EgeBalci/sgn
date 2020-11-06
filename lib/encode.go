@@ -39,7 +39,7 @@ func NewEncoder() *Encoder {
 	encoder.architecture = 32
 	encoder.ObfuscationLimit = 50
 	encoder.PlainDecoder = false
-	encoder.Seed = RandomByte()
+	encoder.Seed = GetRandomByte()
 	encoder.EncodingCount = 1
 	encoder.SaveRegisters = false
 	return &encoder
@@ -67,6 +67,7 @@ func (encoder *Encoder) GetArchitecture() int {
 // all nessary options and parameters are contained inside the encodder struct
 func (encoder *Encoder) Encode(payload []byte) ([]byte, error) {
 
+	var final []byte
 	if encoder.SaveRegisters {
 		payload = append(payload, SafeRegisterSuffix[encoder.architecture]...)
 	}
@@ -79,41 +80,39 @@ func (encoder *Encoder) Encode(payload []byte) ([]byte, error) {
 	payload = append(garbage, payload...)
 	encoder.ObfuscationLimit -= len(garbage)
 	// Apply ADFL cipher to payload
-	ciperedPayload := CipherADFL(payload, encoder.Seed)
-	decoderAssembly := encoder.NewDecoderAssembly(ciperedPayload)
-	// Assemble decoder stub
-	decoder, ok := encoder.Assemble(decoderAssembly)
-	if !ok {
-		return nil, errors.New("decoder assembly failed")
+	cipheredPayload := CipherADFL(payload, encoder.Seed)
+	encodedPayload, err := encoder.AddADFLDecoder(cipheredPayload)
+	if err != nil {
+		return nil, err
 	}
-	// Combine decoder stub + ciphered payload into encoded payload
-	encodedPayload := append(decoder, ciperedPayload...)
+
 	if encoder.PlainDecoder {
-		if encoder.SaveRegisters && encoder.EncodingCount == 1 {
-			encodedPayload = append(SafeRegisterPrefix[encoder.architecture], encodedPayload...)
+		final = encodedPayload
+	} else {
+		// Add more garbage instrctions before the decoder stub
+		garbage, err = encoder.GenerateGarbageInstructions()
+		if err != nil {
+			return nil, err
 		}
-		return encodedPayload, nil
-	}
+		encodedPayload = append(garbage, encodedPayload...)
+		// Calculate schema size
+		schemaSize := ((len(encodedPayload) - len(cipheredPayload)) / (encoder.architecture / 8)) + 1
+		randomSchema := encoder.NewCipherSchema(schemaSize)
 
-	// Add more garbage instrctions before the decoder stub
-	garbage, err = encoder.GenerateGarbageInstructions()
-	if err != nil {
-		return nil, err
-	}
-	encodedPayload = append(garbage, encodedPayload...)
-	// Calculate schema size
-	schemaSize := ((len(encodedPayload) - len(ciperedPayload)) / (encoder.architecture / 8)) + 1
-	randomSchema := encoder.NewCipherSchema(schemaSize)
-
-	obfuscatedEncodedPayload := encoder.SchemaCipher(encodedPayload, 0, randomSchema)
-	final, err := encoder.AddSchemaDecoder(obfuscatedEncodedPayload, randomSchema)
-	if err != nil {
-		return nil, err
+		obfuscatedEncodedPayload := encoder.SchemaCipher(encodedPayload, 0, randomSchema)
+		final, err = encoder.AddSchemaDecoder(obfuscatedEncodedPayload, randomSchema)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if encoder.EncodingCount > 1 {
 		encoder.EncodingCount--
-		return encoder.Encode(final)
+		encoder.Seed = GetRandomByte()
+		final, err = encoder.Encode(final)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if encoder.SaveRegisters {
@@ -167,16 +166,16 @@ func RandomOperand() string {
 	return OPERANDS[rand.Intn(len(OPERANDS))]
 }
 
-// RandomByte generates a random single byte
-func RandomByte() byte {
+// GetRandomByte generates a random single byte
+func GetRandomByte() byte {
 	return byte(rand.Intn(255))
 }
 
-// RandomBytes generates a random byte slice with given size
-func RandomBytes(num int) []byte {
+// GetRandomBytes generates a random byte slice with given size
+func GetRandomBytes(num int) []byte {
 	slice := make([]byte, num)
 	for i := range slice {
-		slice[i] = RandomByte()
+		slice[i] = GetRandomByte()
 	}
 	return slice
 }
@@ -199,10 +198,10 @@ func (encoder *Encoder) NewCipherSchema(num int) SCHEMA {
 			cursor.Key = nil
 		} else if cursor.OP == "ROL" || cursor.OP == "ROR" {
 
-			cursor.Key = []byte{0, 0, 0, RandomByte()}
+			cursor.Key = []byte{0, 0, 0, GetRandomByte()}
 		} else {
 			// 4 byte blocks used because of the x64 xor qword ptr instruction boundaries
-			cursor.Key = RandomBytes(4)
+			cursor.Key = GetRandomBytes(4)
 		}
 		schema[i] = cursor
 	}

@@ -25,7 +25,7 @@ func (encoder *Encoder) GenerateGarbageAssembly() string {
 		randomGarbageAssembly := GetRandomSafeAssembly()
 		register := encoder.GetRandomRegister(encoder.architecture)
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{R}", register)
-		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{K}", fmt.Sprintf("0x%x", RandomByte()))
+		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{K}", fmt.Sprintf("0x%x", GetRandomByte()))
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{L}", RandomLabel())
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{G}", encoder.GenerateGarbageAssembly())
 		return randomGarbageAssembly + ";"
@@ -171,13 +171,13 @@ func (encoder *Encoder) GetRandomOperandValue(operandType string) string {
 
 	switch operandType {
 	case "imm8":
-		return fmt.Sprintf("0x%x", RandomByte()%127)
+		return fmt.Sprintf("0x%x", GetRandomByte()%127)
 	case "imm16":
 		return fmt.Sprintf("0x%x", rand.Intn(32767))
 	case "imm32":
 		return fmt.Sprintf("0x%x", rand.Int31n((2147483647)))
 	case "imm64":
-		return fmt.Sprintf("0x%x", RandomBytes(8))
+		return fmt.Sprintf("0x%x", GetRandomBytes(8))
 	case "r8":
 		return encoder.GetRandomRegister(8)
 	case "r16":
@@ -300,7 +300,7 @@ func (encoder *Encoder) GetRandomFunctionAssembly() string {
 
 	prologue := fmt.Sprintf("PUSH %s;", bp)
 	prologue += fmt.Sprintf("MOV %s,%s;", bp, sp)
-	prologue += fmt.Sprintf("SUB %s,0x%x;", sp, RandomByte())
+	prologue += fmt.Sprintf("SUB %s,0x%x;", sp, GetRandomByte())
 
 	// Fill the function body with garbage instructions
 	garbage := encoder.GenerateGarbageAssembly()
@@ -313,8 +313,8 @@ func (encoder *Encoder) GetRandomFunctionAssembly() string {
 
 // GenerateGarbageJump generates a JMP instruction over random bytes
 func (encoder Encoder) GenerateGarbageJump() ([]byte, error) {
-	randomBytes := RandomBytes(encoder.ObfuscationLimit / 10)
-	garbageJmp, err := encoder.AddJmpOver(randomBytes)
+	GetRandomBytes := GetRandomBytes(encoder.ObfuscationLimit / 10)
+	garbageJmp, err := encoder.AddJmpOver(GetRandomBytes)
 	if err != nil {
 		return nil, err
 	}

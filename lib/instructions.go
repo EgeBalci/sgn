@@ -1473,33 +1473,6 @@ const INSTRUCTIONS string = `
     ]
   },
   {
-    "Mnemonic": "IN",
-    "V64": true,
-    "V32": true,
-    "Operands": [
-      {
-        "Types": [
-          "AL",
-          "AX",
-          "EAX",
-          "AL",
-          "AX",
-          "EAX"
-        ]
-      },
-      {
-        "Types": [
-          "imm8",
-          "imm8",
-          "imm8",
-          "DX",
-          "DX",
-          "DX"
-        ]
-      }
-    ]
-  },
-  {
     "Mnemonic": "INC",
     "V64": true,
     "V32": true,
