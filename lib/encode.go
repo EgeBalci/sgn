@@ -78,7 +78,6 @@ func (encoder *Encoder) Encode(payload []byte) ([]byte, error) {
 		return nil, err
 	}
 	payload = append(garbage, payload...)
-	encoder.ObfuscationLimit -= len(garbage)
 	// Apply ADFL cipher to payload
 	cipheredPayload := CipherADFL(payload, encoder.Seed)
 	encodedPayload, err := encoder.AddADFLDecoder(cipheredPayload)
