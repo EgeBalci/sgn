@@ -1583,18 +1583,6 @@ const INSTRUCTIONS string = `
     ]
   },
   {
-    "Mnemonic": "LLDT",
-    "V64": true,
-    "V32": true,
-    "Operands": [
-      {
-        "Types": [
-          "r/m16"
-        ]
-      }
-    ]
-  },
-  {
     "Mnemonic": "LMSW",
     "V64": true,
     "V32": true,
@@ -1617,18 +1605,6 @@ const INSTRUCTIONS string = `
           "m16",
           "m32",
           "m64"
-        ]
-      }
-    ]
-  },
-  {
-    "Mnemonic": "LTR",
-    "V64": true,
-    "V32": true,
-    "Operands": [
-      {
-        "Types": [
-          "r/m16"
         ]
       }
     ]
