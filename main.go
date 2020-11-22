@@ -15,8 +15,8 @@ import (
 	"time"
 	"unicode"
 
+	sgn "github.com/EgeBalci/sgn/pkg"
 	"github.com/briandowns/spinner"
-	sgn "github.com/egebalci/sgn/lib"
 
 	"github.com/fatih/color"
 )
