@@ -1,9 +1,22 @@
-[![BANNER](https://github.com/EgeBalci/sgn/raw/master/img/banner.png)](https://github.com/EgeBalci/sgn)
-
-[![Go Report Card](https://goreportcard.com/badge/github.com/egebalci/sgn)](https://goreportcard.com/report/github.com/egebalci/sgn)
-[![Open Issues](https://img.shields.io/github/issues/egebalci/sgn?style=flat-square&color=red)](https://github.com/EgeBalci/sgn/issues)
-[![License](https://img.shields.io/github/license/egebalci/amber.svg?style=flat-square)](https://raw.githubusercontent.com/EgeBalci/sgn/master/LICENSE)
-[![Twitter](https://img.shields.io/badge/twitter-@egeblc-55acee.svg?style=flat-square)](https://twitter.com/egeblc)
+<p align="center">
+  <img src="https://github.com/EgeBalci/sgn/raw/master/img/banner.png">
+  </br>
+  <a href="https://github.com/EgeBalci/sgn">
+    <img src="https://img.shields.io/badge/version-2.0.0-green.svg?style=flat-square">
+  </a>
+  <a href="https://goreportcard.com/report/github.com/egebalci/sgn">
+    <img src="https://goreportcard.com/badge/github.com/egebalci/sgn?style=flat-square">
+  </a>
+  <a href="https://github.com/EgeBalci/sgn/issues">
+    <img src="https://img.shields.io/github/issues/egebalci/sgn?style=flat-square&color=red">
+  </a>
+  <a href="https://raw.githubusercontent.com/EgeBalci/sgn/master/LICENSE">
+    <img src="https://img.shields.io/github/license/egebalci/sgn.svg?style=flat-square">
+  </a>
+  <a href="https://twitter.com/egeblc">
+    <img src="https://img.shields.io/badge/twitter-@egeblc-55acee.svg?style=flat-square">
+  </a>
+</p>
 
 SGN is a polymorphic binary encoder for offensive security purposes such as generating statically undetecable binary payloads. It uses a additive feedback loop to encode given binary instructions similar to [LSFR](https://en.wikipedia.org/wiki/Linear-feedback_shift_register). This project is the reimplementation of the [original Shikata ga nai](https://github.com/rapid7/metasploit-framework/blob/master/modules/encoders/x86/shikata_ga_nai.rb) in golang with many improvements. 
 
@@ -24,39 +37,7 @@ You can get the pre-compiled binaries [HERE](https://github.com/EgeBalci/sgn/rel
 
 **Dependencies:**
 
-Only dependencies required is keystone and capstone libraries. For easily installing capstone and keystone libararies check the table below;
-
-
-<table>
-  <tr>
-      <th>OS</th>
-      <th>Install Command</th>
-  </tr>
-  <tr>
-      <td>Ubuntu/Debian</td>
-      <td>sudo apt-get install libcapstone-dev</td>
-  </tr>
-  <tr>
-      <td>Arch Linux</td>
-      <td>sudo pacman -S capstone keystone</td>
-  </tr>
-  <tr>
-      <td>Mac</td>
-      <td>brew install keystone capstone</td>
-  </tr>
-  <tr>
-      <td>Fedora</td>
-      <td>sudo yum install keystone capstone</td>
-  </tr>
-  <tr>
-      <td>Windows/All Other...</td>
-      <td><a href="https://www.capstone-engine.org/documentation.html">CHECK HERE</a></td>
-  </tr>
-</table>
-
-Installation of keystone library can be little tricky in some cases. [Check here](https://github.com/keystone-engine/keystone/blob/master/docs/COMPILE.md) if you have any problem with yor packet manager.
-
-Then just go get it ツ
+The only dependency for building the source is the [keystone engine](https://github.com/keystone-engine/keystone), follow [these](https://github.com/keystone-engine/keystone/blob/master/docs/COMPILE.md) instructions for installing the library. Once libkeystone is installed on the system, simply just go get it ツ
 
 ```
 go get github.com/egebalci/sgn
