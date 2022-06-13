@@ -105,7 +105,7 @@ func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte,
 			return nil, errors.New("schema decoder assembly failed")
 		}
 
-		sub, ok := encoder.Assemble(fmt.Sprintf("SUB %s,0x%x;", encoder.GetStackPointer(), encoder.architecture/8)) // !!
+		sub, ok := encoder.Assemble(fmt.Sprintf("ADD %s,0x%x;", encoder.GetStackPointer(), encoder.architecture/8)) // !!
 		if !ok {
 			return nil, errors.New("schema decoder assembly failed")
 		}
