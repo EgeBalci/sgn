@@ -69,7 +69,7 @@ func (encoder *Encoder) Encode(payload []byte) ([]byte, error) {
 
 	var final []byte
 	if encoder.SaveRegisters {
-		payload = append(payload, SafeRegisterSuffix[encoder.architecture]...)
+		payload = append(SafeRegisterSuffix[encoder.architecture], payload...)
 	}
 
 	// Add garbage instrctions before the un-encoded payload

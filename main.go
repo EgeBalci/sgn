@@ -137,7 +137,7 @@ func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 
 	if encoder.SaveRegisters {
 		printVerbose("Adding safe register suffix...")
-		final = append(final, sgn.SafeRegisterSuffix[encoder.GetArchitecture()]...)
+		payload = append(sgn.SafeRegisterSuffix[encoder.GetArchitecture()], payload...)
 	}
 
 	// Add garbage instrctions before the ciphered decoder stub
