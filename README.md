@@ -40,7 +40,7 @@ You can get the pre-compiled binaries [HERE](https://github.com/EgeBalci/sgn/rel
 The only dependency for building the source is the [keystone engine](https://github.com/keystone-engine/keystone), follow [these](https://github.com/keystone-engine/keystone/blob/master/docs/COMPILE.md) instructions for installing the library. Once libkeystone is installed on the system, simply just go get it ツ
 
 ```
-go get github.com/EgeBalci/sgn
+go install github.com/EgeBalci/sgn@latest
 ```
 
 ***DOCKER INSTALL***
