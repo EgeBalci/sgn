@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/EgeBalci/keystone-go"
 )
@@ -60,21 +59,17 @@ func init() {
 
 	// Set the decoder stubs
 	STUB = make(map[int]string)
-	STUB[32] = x86DecoderStub
-	STUB[64] = x64DecoderStub
+	STUB[32] = X86_DECODER_STUB
+	STUB[64] = X64_DECODER_STUB
 
 	// Set safe register prefix/suffix
 	SafeRegisterPrefix = make(map[int]([]byte))
 	SafeRegisterSuffix = make(map[int]([]byte))
-	SafeRegisterPrefix[32] = safeX86Prefix
-	SafeRegisterPrefix[64] = safeX64Prefix
+	SafeRegisterPrefix[32] = X86_REG_SAVE_PREFIX
+	SafeRegisterPrefix[64] = X64_REG_SAVE_PREFIX
 
-	SafeRegisterSuffix[32] = safeX86Suffix
-	SafeRegisterSuffix[64] = safeX64Suffix
-
-	// Set random seed
-	rand.Seed(time.Now().UTC().UnixNano())
-
+	SafeRegisterSuffix[32] = X86_REG_SAVE_SUFFIX
+	SafeRegisterSuffix[64] = X64_REG_SAVE_SUFFIX
 }
 
 // SafeRegisterPrefix contains the instructions for saving registers to stack
@@ -83,13 +78,13 @@ var SafeRegisterPrefix map[int]([]byte)
 // SafeRegisterSuffix contains the instructions for restoring registers from stack
 var SafeRegisterSuffix map[int]([]byte)
 
-// safeX86Prefix instructions for saving registers to stack
-var safeX86Prefix = []byte{0x60, 0x9c} // PUSHAD, PUSHFD
-// safeX86Suffix instructions for saving registers to stack
-var safeX86Suffix = []byte{0x9d, 0x61} // POPFD, POPAD
+// X86_REG_SAVE_PREFIX instructions for saving registers to stack
+var X86_REG_SAVE_PREFIX = []byte{0x60, 0x9c} // PUSHAD, PUSHFD
+// X86_REG_SAVE_SUFFIX instructions for saving registers to stack
+var X86_REG_SAVE_SUFFIX = []byte{0x9d, 0x61} // POPFD, POPAD
 
-// safeX64Prefix instructions for saving registers to stack
-var safeX64Prefix = []byte{
+// X64_REG_SAVE_PREFIX instructions for saving registers to stack
+var X64_REG_SAVE_PREFIX = []byte{
 	0x50, 0x53, 0x51, 0x52, // PUSH RAX,RBX,RCX,RDX
 	0x56, 0x57, 0x55, 0x54, // PUSH RSI,RDI,RBP,RSP
 	0x41, 0x50, 0x41, 0x51, // PUSH R8,R9
@@ -98,8 +93,8 @@ var safeX64Prefix = []byte{
 	0x41, 0x56, 0x41, 0x57, // PUSH R14,R15
 }
 
-// safeX64Suffix instructions for saving registers to stack
-var safeX64Suffix = []byte{
+// X64_REG_SAVE_SUFFIX instructions for saving registers to stack
+var X64_REG_SAVE_SUFFIX = []byte{
 	0x41, 0x5f, 0x41, 0x5e, // POP R15,R14
 	0x41, 0x5d, 0x41, 0x5c, // POP R13,R12
 	0x41, 0x5b, 0x41, 0x5a, // POP R11,R10
@@ -113,7 +108,6 @@ var REGS map[int][]REG
 
 // GetRandomRegister returns a random register name based on given size and architecture
 func (encoder Encoder) GetRandomRegister(size int) string {
-
 	switch size {
 	case 8:
 		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Low
@@ -132,7 +126,6 @@ func (encoder Encoder) GetRandomRegister(size int) string {
 // GetRandomStackAddress returns a stack address assembly referance based on the encoder architecture
 // Ex: [esp+10] (address range is 1 byte)
 func (encoder Encoder) GetRandomStackAddress() string {
-
 	if CoinFlip() {
 		return fmt.Sprintf("[%s+0x%x]", encoder.GetStackPointer(), GetRandomByte())
 	}
@@ -141,7 +134,6 @@ func (encoder Encoder) GetRandomStackAddress() string {
 
 // GetStackPointer returns the stack pointer register string based on the encoder architecture
 func (encoder Encoder) GetStackPointer() string {
-
 	switch encoder.architecture {
 	case 32:
 		return "ESP"
@@ -155,7 +147,6 @@ func (encoder Encoder) GetStackPointer() string {
 
 // GetBasePointer returns the base pointer register string based on the encoder architecture
 func (encoder Encoder) GetBasePointer() string {
-
 	switch encoder.architecture {
 	case 32:
 		return "EBP"
@@ -168,32 +159,39 @@ func (encoder Encoder) GetBasePointer() string {
 }
 
 // GetSafeRandomRegister returns a random register among all (registers-excluded parameters) based on given size
-func (encoder Encoder) GetSafeRandomRegister(size int, excludes ...string) string {
-
-	for {
-		r := REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))]
-		for i, exclude := range excludes {
-			if r.Full != exclude && r.Extended != exclude && r.High != exclude && r.Low != exclude {
-				if i == len(excludes)-1 {
-					switch size {
-					case 8:
-						return r.Low
-					case 16:
-						return r.High
-					case 32:
-						return r.Extended
-					case 64:
-						return r.Full
-					default:
-						panic("invalid register size")
-					}
-				}
-			} else {
-				break
-			}
-		}
+func (encoder Encoder) GetSafeRandomRegister(size int, excludes ...string) (string, error) {
+	regs := make([]REG, len(REGS[encoder.architecture]))
+	perm := rand.Perm(len(REGS[encoder.architecture]))
+	for i, v := range perm {
+		regs[v] = REGS[encoder.architecture][i]
 	}
 
+	for _, r := range regs {
+		excluded := false
+		for _, x := range excludes {
+			if r.Extended == x || r.Full == x || r.High == x || r.Low == x {
+				excluded = true
+			}
+		}
+
+		if excluded {
+			continue
+		}
+
+		switch size {
+		case 8:
+			return r.Low, nil
+		case 16:
+			return r.High, nil
+		case 32:
+			return r.Extended, nil
+		case 64:
+			return r.Full, nil
+		default:
+			return "", errors.New("invalid register size")
+		}
+	}
+	return "", errors.New("safe register selection failed!")
 }
 
 // Assemble assembes the given instructions

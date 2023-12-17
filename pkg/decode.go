@@ -12,7 +12,7 @@ import (
 var STUB map[int]string
 
 // x86DecoderStub is base decoder assembly for 32 bit binaries
-const x86DecoderStub = `
+const X86_DECODER_STUB = `
 	CALL getip
 getip:
 	POP {R}
@@ -26,7 +26,7 @@ data:
 `
 
 // x64DecoderStub  is base decoder assembly for 64 bit binaries
-const x64DecoderStub = `
+const X64_DECODER_STUB = `
 	MOV {RL},{K}
 	MOV RCX,{S}
 	LEA {R},[RIP+data-1]
@@ -39,23 +39,33 @@ data:
 
 // NewDecoderAssembly creates a unobfuscated decoder stub to the given encoded payload
 // with the given architecture and seed value
-func (encoder *Encoder) NewDecoderAssembly(payloadSize int) string {
+func (encoder *Encoder) NewDecoderAssembly(payloadSize int) (string, error) {
 
 	decoder := STUB[encoder.architecture]
-	reg := encoder.GetSafeRandomRegister(encoder.architecture, "ECX")
-	regL := encoder.GetSafeRandomRegister(8, reg, "CL")
+	reg, err := encoder.GetSafeRandomRegister(encoder.architecture, "ECX")
+	if err != nil {
+		return "", err
+	}
+
+	regL, err := encoder.GetSafeRandomRegister(8, reg, "CL")
+	if err != nil {
+		return "", err
+	}
 
 	decoder = strings.ReplaceAll(decoder, "{R}", reg)
 	decoder = strings.ReplaceAll(decoder, "{RL}", regL)
 	decoder = strings.ReplaceAll(decoder, "{K}", fmt.Sprintf("0x%x", encoder.Seed))
 	decoder = strings.ReplaceAll(decoder, "{S}", fmt.Sprintf("0x%x", payloadSize))
-	//fmt.Println(decoder)
-	return decoder
+	// fmt.Println(decoder)
+	return decoder, nil
 }
 
 // AddADFLDecoder creates decoder stub for binaries that are ciphered with CipherADFL function.
 func (encoder *Encoder) AddADFLDecoder(payload []byte) ([]byte, error) {
-	decoderAssembly := encoder.NewDecoderAssembly(len(payload))
+	decoderAssembly, err := encoder.NewDecoderAssembly(len(payload))
+	if err != nil {
+		return nil, err
+	}
 	decoder, ok := encoder.Assemble(decoderAssembly)
 	if !ok {
 		return nil, errors.New("decoder assembly failed")
@@ -68,14 +78,11 @@ func (encoder *Encoder) AddADFLDecoder(payload []byte) ([]byte, error) {
 func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte, error) {
 
 	index := 0
-
 	// Add garbage instrctions before the ciphered decoder stub
 	garbage, err := encoder.GenerateGarbageInstructions()
 	if err != nil {
 		return nil, err
 	}
-	payload = append(garbage, payload...)
-	index += len(garbage)
 
 	// Add call instruction over the ciphered payload
 	payload, err = encoder.AddCallOver(payload)
@@ -83,35 +90,26 @@ func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte,
 		return nil, err
 	}
 
+	payload = append(garbage, payload...)
+	index += len(garbage)
+
 	// Add garbage instrctions after the ciphered decoder stub
 	garbage, err = encoder.GenerateGarbageInstructions()
 	if err != nil {
 		return nil, err
 	}
-	payload = append(garbage, payload...)
+	payload = append(payload, garbage...)
 
-	reg := encoder.GetRandomRegister(encoder.architecture)
-
-	// Toss a coin for get the garbage+decoder address to register by pop or mov
-	if CoinFlip() {
-		pop, ok := encoder.Assemble(fmt.Sprintf("POP %s;", reg)) // !!
-		if !ok {
-			return nil, errors.New("schema decoder assembly failed")
-		}
-		payload = append(payload, pop...)
-	} else {
-		mov, ok := encoder.Assemble(fmt.Sprintf("MOV %s,[%s];", reg, encoder.GetStackPointer())) // !!
-		if !ok {
-			return nil, errors.New("schema decoder assembly failed")
-		}
-
-		sub, ok := encoder.Assemble(fmt.Sprintf("SUB %s,0x%x;", encoder.GetStackPointer(), encoder.architecture/8)) // !!
-		if !ok {
-			return nil, errors.New("schema decoder assembly failed")
-		}
-
-		payload = append(payload, append(mov, sub...)...)
+	reg, err := encoder.GetSafeRandomRegister(encoder.architecture, encoder.GetStackPointer())
+	if err != nil {
+		return nil, err
 	}
+
+	pop, ok := encoder.Assemble(fmt.Sprintf("POP %s;", reg)) // !!
+	if !ok {
+		return nil, errors.New("schema decoder assembly failed")
+	}
+	payload = append(payload, pop...)
 
 	for _, cursor := range schema {
 
@@ -138,15 +136,7 @@ func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte,
 		index += 4
 	}
 
-	// More possibilities...
-	returnAssembly := ""
-	if CoinFlip() {
-		returnAssembly = fmt.Sprintf("jmp %s;", reg)
-	} else {
-		returnAssembly = fmt.Sprintf("push %s;ret;", reg)
-	}
-
-	returnInstruction, ok := encoder.Assemble(returnAssembly)
+	returnInstruction, ok := encoder.Assemble(fmt.Sprintf("jmp %s;", reg))
 	if !ok {
 		return nil, errors.New("schema decoder return assembly failed")
 	}

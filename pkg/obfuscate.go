@@ -32,7 +32,7 @@ func (encoder *Encoder) GenerateGarbageAssembly() string {
 	case 2:
 		return encoder.GetRandomFunctionAssembly()
 	case 3:
-		randRegister := encoder.GetSafeRandomRegister(encoder.architecture, encoder.GetStackPointer())
+		randRegister, _ := encoder.GetSafeRandomRegister(encoder.architecture, encoder.GetStackPointer()) // we can safely ignore the error
 		// Save the destination register
 		// After saving the target register to stack we can munipulate the register unlimited times
 		unsafeGarbageAssembly := fmt.Sprintf("PUSH %s;", randRegister)

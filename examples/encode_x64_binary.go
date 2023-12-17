@@ -3,22 +3,24 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"os"
 
-	sgn "github.com/egebalci/sgn/lib"
+	sgn "github.com/egebalci/sgn/pkg"
 )
 
 func main() {
 	// First open some file
-	file, err := ioutil.ReadFile("myfile.bin")
+	file, err := os.ReadFile("myfile.bin")
 	if err != nil { // check error
 		fmt.Println(err)
 		return
 	}
 	// Create a new SGN encoder
-	encoder := sgn.NewEncoder()
-	// Set the proper architecture
-	encoder.SetArchitecture(64)
+	encoder, err := sgn.NewEncoder(64)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	// Encode the binary
 	encodedBinary, err := encoder.Encode(file)
 	if err != nil {

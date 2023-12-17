@@ -32,17 +32,26 @@ type Encoder struct {
 }
 
 // NewEncoder for creating new encoder structures
-func NewEncoder() *Encoder {
+func NewEncoder(arch int) (*Encoder, error) {
 	// Create with default settings
-	var encoder Encoder
-	// need to check architecture
-	encoder.architecture = 32
-	encoder.ObfuscationLimit = 50
-	encoder.PlainDecoder = false
-	encoder.Seed = GetRandomByte()
-	encoder.EncodingCount = 1
-	encoder.SaveRegisters = false
-	return &encoder
+	encoder := Encoder{
+		ObfuscationLimit: 50,
+		PlainDecoder:     false,
+		Seed:             GetRandomByte(),
+		EncodingCount:    1,
+		SaveRegisters:    false,
+	}
+
+	switch arch {
+	case 32:
+		encoder.architecture = 32
+	case 64:
+		encoder.architecture = 64
+	default:
+		return nil, errors.New("invalid architecture")
+	}
+
+	return &encoder, nil
 }
 
 // SetArchitecture sets the encoder architecture
