@@ -37,10 +37,10 @@ You can get the pre-compiled binaries [HERE](https://github.com/EgeBalci/sgn/rel
 
 **Dependencies:**
 
-The only dependency for building the source is the [keystone engine](https://github.com/keystone-engine/keystone), follow [these](https://github.com/keystone-engine/keystone/blob/master/docs/COMPILE.md) instructions for installing the library. Once libkeystone is installed on the system, simply just go get it ツ
+The only dependency for building the source is the [keystone engine](https://github.com/keystone-engine/keystone), follow [these](https://github.com/keystone-engine/keystone/blob/master/docs/COMPILE.md) instructions for installing the library. Once libkeystone is installed on the system, simply just go install it ツ
 
 ```
-go get github.com/EgeBalci/sgn
+go install github.com/EgeBalci/sgn@latest
 ```
 
 ***DOCKER INSTALL***
@@ -65,34 +65,31 @@ docker run -it egee/sgn
   ___ / /  (_) /_____ _/ /____ _  ___ ____ _  ___  ___ _(_)
  (_-</ _ \/ /  '_/ _ `/ __/ _ `/ / _ `/ _ `/ / _ \/ _ `/ / 
 /___/_//_/_/_/\_\\_,_/\__/\_,_/  \_, /\_,_/ /_//_/\_,_/_/  
-========[Author:-Ege-Balcı-]====/___/=======v2.0.0=========  
+========[Author:-Ege-Balcı-]====/___/=======v2.0.1=========  
     ┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻           (ノ ゜Д゜)ノ ︵ 仕方がない
 
-Usage: sgn [OPTIONS] <FILE>
-  -a int
-    	Binary architecture (32/64) (default 32)
-  -asci
-    	Generates a full ASCI printable payload (takes very long time to bruteforce)
-  -badchars string
-    	Don't use specified bad characters given in hex format (\x00\x01\x02...)
-  -c int
-    	Number of times to encode the binary (increases overall size) (default 1)
-  -h	Print help
-  -max int
-    	Maximum number of bytes for obfuscation (default 20)
-  -o string
-    	Encoded output binary name
-  -plain-decoder
-    	Do not encode the decoder stub
-  -safe
-    	Do not modify and register values
-  -v	More verbose output
+Usage: sgn
+
+Flags:
+  -h, --help               Show context-sensitive help.
+  -i, --input=STRING       Input binary path
+  -o, --out=STRING         Encoded output binary name
+  -a, --arch=64            Binary architecture (32/64)
+  -c, --enc=1              Number of times to encode the binary (increases overall size)
+  -M, --max=50             Maximum number of bytes for decoder obfuscation
+      --plain              Do not encode the decoder stub
+      --ascii              Generates a full ASCI printable payload (may take very long time to bruteforce)
+  -S, --safe               Preserve all register values (a.k.a. no clobber)
+      --badchars=STRING    Don't use specified bad characters given in hex format (\x00\x01\x02...)
+  -v, --verbose            Verbose mode
+      --version
+
 ```
 
 ***Docker Usage***
 
 ```
-docker run -it -v /tmp/:/tmp/ sgn /tmp/shellcode
+docker run -it -v /tmp/:/tmp/ sgn -i /tmp/shellcode
 ```
 
 ## Using As Library
@@ -106,19 +103,23 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	sgn "github.com/egebalci/sgn/lib"
+	sgn "github.com/egebalci/sgn/pkg"
 )
 
 func main() {
 	// First open some file
-	file, err := ioutil.ReadFile("myfile.bin")
+	file, err := os.ReadFile("myfile.bin")
 	if err != nil { // check error
 		fmt.Println(err)
 		return
 	}
 	// Create a new SGN encoder
-	encoder := sgn.NewEncoder()
-	// Set the proper architecture
+	encoder, err := sgn.NewEncoder(64)
+	if err != nil {
+		fmt.Println(err)
+		return
+    }	
+    // Set the proper architecture
 	encoder.SetArchitecture(64)
 	// Encode the binary
 	encodedBinary, err := encoder.Encode(file)
