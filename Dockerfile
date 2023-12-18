@@ -1,4 +1,4 @@
-FROM golang:1.15-buster as builder
+FROM golang:latest as builder
 
 RUN apt-get update && apt-get -y install \
     build-essential \    
