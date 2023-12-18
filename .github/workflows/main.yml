@@ -1,0 +1,44 @@
+
+name: build
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  macos-run:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.21
+    - name: Make Build
+      run: make
+    - name: Test Run
+      run: ./build/sgn --version
+  linux-run:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.21
+    - name: Make Build
+      run: make
+    - name: Test Run
+      run: ./build/sgn --version
+  windows-run:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.21
+    - name: Make Build
+      run: make
+    - name: Test Run
+      run: ./build/sgn.exe --version
