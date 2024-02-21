@@ -166,32 +166,27 @@ func (encoder Encoder) GetSafeRandomRegister(size int, excludes ...string) (stri
 		regs[v] = REGS[encoder.architecture][i]
 	}
 
-	for _, r := range regs {
-		excluded := false
+	for _, r := range REGS[encoder.architecture] {
 		for _, x := range excludes {
-			if r.Extended == x || r.Full == x || r.High == x || r.Low == x {
-				excluded = true
+			if r.Extended != x && r.Full != x && r.High != x && r.Low != x {
+				regs = append(regs, r)
 			}
 		}
-
-		if excluded {
-			continue
-		}
-
-		switch size {
-		case 8:
-			return r.Low, nil
-		case 16:
-			return r.High, nil
-		case 32:
-			return r.Extended, nil
-		case 64:
-			return r.Full, nil
-		default:
-			return "", errors.New("invalid register size")
-		}
 	}
-	return "", errors.New("safe register selection failed!")
+
+	r := regs[rand.Intn(len(regs))]
+	switch size {
+	case 8:
+		return r.Low, nil
+	case 16:
+		return r.High, nil
+	case 32:
+		return r.Extended, nil
+	case 64:
+		return r.Full, nil
+	default:
+		return "", errors.New("invalid register size")
+	}
 }
 
 // Assemble assembes the given instructions
