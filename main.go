@@ -119,6 +119,7 @@ func main() {
 		color.Blue("\n" + hex.Dump(payload) + "\n")
 	}
 
+	utils.PrintVerbose("Total Garbage Size: %d", encoder.ObfuscationLimit)
 	utils.PrintSuccess("Final size: %d", outputSize)
 	utils.PrintSuccess("All done ＼(＾O＾)／")
 }

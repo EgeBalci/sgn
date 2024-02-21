@@ -19,9 +19,7 @@ import (
 // GenerateGarbageAssembly generates random garbage instruction(s) assemblies
 // based on the subject encoder architecture
 func (encoder *Encoder) GenerateGarbageAssembly() string {
-
-	switch rand.Intn(4) {
-	case 1:
+	if CoinFlip() {
 		randomGarbageAssembly := GetRandomSafeAssembly()
 		register := encoder.GetRandomRegister(encoder.architecture)
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{R}", register)
@@ -29,33 +27,8 @@ func (encoder *Encoder) GenerateGarbageAssembly() string {
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{L}", RandomLabel())
 		randomGarbageAssembly = strings.ReplaceAll(randomGarbageAssembly, "{G}", encoder.GenerateGarbageAssembly())
 		return randomGarbageAssembly + ";"
-	case 2:
-		return encoder.GetRandomFunctionAssembly()
-	case 3:
-		randRegister, _ := encoder.GetSafeRandomRegister(encoder.architecture, encoder.GetStackPointer()) // we can safely ignore the error
-		// Save the destination register
-		// After saving the target register to stack we can munipulate the register unlimited times
-		unsafeGarbageAssembly := fmt.Sprintf("PUSH %s;", randRegister)
-		if CoinFlip() {
-			unsafeGarbageAssembly += encoder.GenerateGarbageAssembly()
-		}
-		unsafeGarbageAssembly += encoder.GetRandomUnsafeAssembly(randRegister)
-		// Keep adding unsafe garbage by chance
-		for {
-			if CoinFlip() {
-				unsafeGarbageAssembly += encoder.GetRandomUnsafeAssembly(randRegister)
-			} else {
-				break
-			}
-		}
-		if CoinFlip() {
-			unsafeGarbageAssembly += encoder.GenerateGarbageAssembly()
-		}
-		unsafeGarbageAssembly += fmt.Sprintf("POP %s;", randRegister)
-		return unsafeGarbageAssembly
-	default:
-		return ";"
 	}
+	return ";"
 }
 
 // GenerateGarbageInstructions generates random garbage instruction(s)
