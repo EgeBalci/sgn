@@ -160,12 +160,7 @@ func (encoder Encoder) GetBasePointer() string {
 
 // GetSafeRandomRegister returns a random register among all (registers-excluded parameters) based on given size
 func (encoder Encoder) GetSafeRandomRegister(size int, excludes ...string) (string, error) {
-	regs := make([]REG, len(REGS[encoder.architecture]))
-	perm := rand.Perm(len(REGS[encoder.architecture]))
-	for i, v := range perm {
-		regs[v] = REGS[encoder.architecture][i]
-	}
-
+	regs := []REG{}
 	for _, r := range REGS[encoder.architecture] {
 		for _, x := range excludes {
 			if r.Extended != x && r.Full != x && r.High != x && r.Low != x {
