@@ -84,14 +84,14 @@ func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte,
 		return nil, err
 	}
 
+	payload = append(garbage, payload...)
+	index += len(garbage)
+
 	// Add call instruction over the ciphered payload
 	payload, err = encoder.AddCallOver(payload)
 	if err != nil {
 		return nil, err
 	}
-
-	payload = append(garbage, payload...)
-	index += len(garbage)
 
 	// Add garbage instrctions after the ciphered decoder stub
 	garbage, err = encoder.GenerateGarbageInstructions()
