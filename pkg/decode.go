@@ -40,7 +40,6 @@ data:
 // NewDecoderAssembly creates a unobfuscated decoder stub to the given encoded payload
 // with the given architecture and seed value
 func (encoder *Encoder) NewDecoderAssembly(payloadSize int) (string, error) {
-
 	decoder := STUB[encoder.architecture]
 	reg, err := encoder.GetSafeRandomRegister(encoder.architecture, "ECX")
 	if err != nil {
@@ -76,7 +75,6 @@ func (encoder *Encoder) AddADFLDecoder(payload []byte) ([]byte, error) {
 // AddSchemaDecoder creates decoder stub for binaries that are ciphered with SchemaCipher function.
 // The schema array that is used on the given payload, architecture of the payload and obfuscation level is required.
 func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte, error) {
-
 	index := 0
 	// Add garbage instrctions before the ciphered decoder stub
 	garbage, err := encoder.GenerateGarbageInstructions()
@@ -126,10 +124,10 @@ func (encoder *Encoder) AddSchemaDecoder(payload []byte, schema SCHEMA) ([]byte,
 		} else {
 			stepAssembly += fmt.Sprintf("\t%s DWORD PTR [%s+0x%x],0x%x;\n", cursor.OP, reg, index, binary.BigEndian.Uint32(cursor.Key))
 		}
-		//fmt.Println(stepAssembly)
+		// fmt.Println(stepAssembly)
 		decipherStep, ok := encoder.Assemble(stepAssembly)
 		if !ok {
-			//fmt.Println(stepAssembly)
+			// fmt.Println(stepAssembly)
 			return nil, errors.New("schema decoder step assembly failed")
 		}
 		payload = append(payload, decipherStep...)
