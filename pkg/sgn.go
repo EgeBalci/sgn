@@ -162,10 +162,15 @@ func (encoder Encoder) GetBasePointer() string {
 func (encoder Encoder) GetSafeRandomRegister(size int, excludes ...string) (string, error) {
 	regs := []REG{}
 	for _, r := range REGS[encoder.architecture] {
+		safe := true
 		for _, x := range excludes {
-			if r.Extended != x && r.Full != x && r.High != x && r.Low != x {
-				regs = append(regs, r)
+			if r.Extended == x || r.Full == x || r.High == x || r.Low == x {
+				safe = false
+				break
 			}
+		}
+		if safe {
+			regs = append(regs, r)
 		}
 	}
 

@@ -71,7 +71,7 @@ func GetRandomSafeAssembly() string {
 		newSafeGarbageInstructions = append(newSafeGarbageInstructions, jmp+" {L};{G};{L}:")
 		//newSafeGarbageInstructions = append(newSafeGarbageInstructions, jmp+" 2")
 	}
-	return newSafeGarbageInstructions[rand.Intn(len(SafeGarbageInstructions))]
+	return newSafeGarbageInstructions[rand.Intn(len(newSafeGarbageInstructions))]
 }
 
 // GetRandomUnsafeAssembly return a safe garbage instruction assembly
