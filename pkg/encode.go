@@ -104,7 +104,10 @@ func (encoder *Encoder) Encode(payload []byte) ([]byte, error) {
 		}
 		encodedPayload = append(garbage, encodedPayload...)
 		// Calculate schema size
-		schemaSize := ((len(encodedPayload) - len(cipheredPayload)) / (encoder.architecture / 8)) + 1
+		schemaSize := ((len(encodedPayload) - len(cipheredPayload)) / 4) + 1
+		for len(encodedPayload) < schemaSize*4 {
+			encodedPayload = append(encodedPayload, 0x90)
+		}
 		randomSchema := encoder.NewCipherSchema(schemaSize)
 
 		obfuscatedEncodedPayload := encoder.SchemaCipher(encodedPayload, 0, randomSchema)

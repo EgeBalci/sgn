@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	sgn "github.com/egebalci/sgn/pkg"
+	sgn "github.com/EgeBalci/sgn/pkg"
 )
 
 func main() {

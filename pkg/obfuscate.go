@@ -35,6 +35,10 @@ func (encoder *Encoder) GenerateGarbageAssembly() string {
 // with the specified architecture and returns the assembled bytes
 func (encoder *Encoder) GenerateGarbageInstructions() ([]byte, error) {
 
+	if encoder.ObfuscationLimit <= 0 {
+		return []byte{}, nil
+	}
+
 	randomGarbageAssembly := encoder.GenerateGarbageAssembly()
 	garbage, ok := encoder.Assemble(randomGarbageAssembly)
 	if !ok {
@@ -92,6 +96,12 @@ func (encoder *Encoder) GetRandomUnsafeAssembly(destReg string) string {
 			case 64:
 				subReg = i.Full
 			}
+
+			if subReg == "" {
+				subReg = destReg
+				randRegSize = encoder.architecture
+			}
+			break
 		}
 	}
 
