@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -82,7 +81,10 @@ func main() {
 				utils.PrintFatal("%s", err)
 			}
 
-			if (opts.AsciiPayload && utils.IsASCIIPrintable(string(p))) || (len(badBytes) > 0 && !bytes.Contains(p, badBytes)) {
+			asciiOk := !opts.AsciiPayload || utils.IsASCIIPrintable(string(p))
+			badBytesOk := len(badBytes) == 0 || !utils.ContainsBytes(p, badBytes)
+
+			if asciiOk && badBytesOk {
 				payload = p
 				break
 			}

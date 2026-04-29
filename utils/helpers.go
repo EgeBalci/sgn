@@ -12,9 +12,9 @@ import (
 var Verbose = false
 
 // checks if a byte array contains any element of another byte array
-func containsBytes(data, any []byte) bool {
+func ContainsBytes(data, any []byte) bool {
 	for _, b := range any {
-		if bytes.Contains(data, []byte{b}) {
+		if bytes.IndexByte(data, b) != -1 {
 			return true
 		}
 	}
