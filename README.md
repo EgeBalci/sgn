@@ -2,7 +2,7 @@
   <img src="https://github.com/EgeBalci/sgn/raw/master/img/banner.png">
   </br>
   <a href="https://github.com/EgeBalci/sgn">
-    <img src="https://img.shields.io/badge/version-2.0.1-green.svg?style=flat-square">
+    <img src="https://img.shields.io/badge/version-2.0.2-green.svg?style=flat-square">
   </a>
   <a href="https://goreportcard.com/report/github.com/egebalci/sgn">
     <img src="https://goreportcard.com/badge/github.com/egebalci/sgn?style=flat-square">
@@ -65,7 +65,7 @@ docker run -it egee/sgn
   ___ / /  (_) /_____ _/ /____ _  ___ ____ _  ___  ___ _(_)
  (_-</ _ \/ /  '_/ _ `/ __/ _ `/ / _ `/ _ `/ / _ \/ _ `/ / 
 /___/_//_/_/_/\_\\_,_/\__/\_,_/  \_, /\_,_/ /_//_/\_,_/_/  
-========[Author:-Ege-Balcı-]====/___/=======v2.0.1=========  
+========[Author:-Ege-Balcı-]====/___/=======v2.0.2=========  
     ┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻           (ノ ゜Д゜)ノ ︵ 仕方がない
 
 Usage: sgn

@@ -18,7 +18,6 @@ import (
 )
 
 func main() {
-
 	printBanner()
 	// Configure the options from the flags/config file
 	opts, err := config.ConfigureOptions()
@@ -196,6 +195,7 @@ func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 }
 
 func printBanner() {
-	banner, _ := base64.StdEncoding.DecodeString("ICAgICAgIF9fICAgXyBfXyAgICAgICAgX18gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXyAKICBfX18gLyAvICAoXykgL19fX19fIF8vIC9fX19fIF8gIF9fXyBfX19fIF8gIF9fXyAgX19fIF8oXykKIChfLTwvIF8gXC8gLyAgJ18vIF8gYC8gX18vIF8gYC8gLyBfIGAvIF8gYC8gLyBfIFwvIF8gYC8gLyAKL19fXy9fLy9fL18vXy9cX1xcXyxfL1xfXy9cXyxfLyAgXF8sIC9cXyxfLyAvXy8vXy9cXyxfL18vICAKPT09PT09PT1bQXV0aG9yOi1FZ2UtQmFsY8SxLV09PT09L19fXy89PT09PT09djIuMC4xPT09PT09PT09ICAKICAgIOKUu+KUgeKUuyDvuLXjg70oYNCUwrQp776J77i1IOKUu+KUgeKUuyAgICAgICAgICAgKOODjiDjgpzQlOOCnCnjg44g77i1IOS7leaWueOBjOOBquOBhAo=")
-	fmt.Println(string(banner))
+	banner, _ := base64.StdEncoding.DecodeString("ICAgICAgIF9fICAgXyBfXyAgICAgICAgX18gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXyAKICBfX18gLyAvICAoXykgL19fX19fIF8vIC9fX19fIF8gIF9fXyBfX19fIF8gIF9fXyAgX19fIF8oXykKIChfLTwvIF8gXC8gLyAgJ18vIF8gYC8gX18vIF8gYC8gLyBfIGAvIF8gYC8gLyBfIFwvIF8gYC8gLyAKL19fXy9fLy9fL18vXy9cX1xcXyxfL1xfXy9cXyxfLyAgXF8sIC9cXyxfLyAvXy8vXy9cXyxfL18vICAKPT09PT09PT1bQXV0aG9yOi1FZ2UtQmFsY8SxLV09PT09L19fXy89PT09PT09JXM9PT09PT09PT0gIAogICAg4pS74pSB4pS7IO+4teODvShg0JTCtCnvvonvuLUg4pS74pSB4pS7ICAgICAgICAgICAo44OOIOOCnNCU44KcKeODjiDvuLUg5LuV5pa544GM44Gq44GECg==")
+
+	fmt.Printf(string(banner)+"\n", strings.Split(config.Version, "-")[0])
 }
