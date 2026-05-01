@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -77,12 +76,18 @@ func main() {
 		}
 
 		for {
+			encoder.ObfuscationLimit = opts.ObsLevel
+			encoder.EncodingCount = opts.EncCount
+			encoder.SaveRegisters = opts.Safe
 			p, err := encode(encoder, file)
 			if err != nil {
 				utils.PrintFatal("%s", err)
 			}
 
-			if (opts.AsciiPayload && utils.IsASCIIPrintable(string(p))) || (len(badBytes) > 0 && !bytes.Contains(p, badBytes)) {
+			asciiOk := !opts.AsciiPayload || utils.IsASCIIPrintable(string(p))
+			badBytesOk := len(badBytes) == 0 || !utils.ContainsBytes(p, badBytes)
+
+			if asciiOk && badBytesOk {
 				payload = p
 				break
 			}
@@ -106,10 +111,11 @@ func main() {
 	utils.PrintStatus("Input: %s", opts.Input)
 	utils.PrintStatus("Input Size: %d", len(file))
 	utils.PrintStatus("Outfile: %s", opts.Output)
-	out, err := os.OpenFile(opts.Output, os.O_CREATE|os.O_WRONLY, 0644)
+	out, err := os.OpenFile(opts.Output, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		utils.PrintFatal("%s", err)
 	}
+	defer out.Close()
 	_, err = out.Write(payload)
 	if err != nil {
 		utils.PrintFatal("%s", err)
@@ -158,7 +164,10 @@ func encode(encoder *sgn.Encoder, payload []byte) ([]byte, error) {
 	if encoder.PlainDecoder {
 		final = encodedPayload
 	} else {
-		schemaSize := ((len(encodedPayload) - len(ciperedPayload)) / (encoder.GetArchitecture() / 8)) + 1
+		schemaSize := ((len(encodedPayload) - len(ciperedPayload)) / 4) + 1
+		for len(encodedPayload) < schemaSize*4 {
+			encodedPayload = append(encodedPayload, 0x90)
+		}
 		randomSchema := encoder.NewCipherSchema(schemaSize)
 		utils.PrintVerbose("Cipher schema: %s", red("\n\n%s", sgn.GetSchemaTable(randomSchema)))
 		obfuscatedEncodedPayload := encoder.SchemaCipher(encodedPayload, 0, randomSchema)

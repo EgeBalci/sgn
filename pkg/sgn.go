@@ -39,15 +39,15 @@ func init() {
 	REGS[32] = append(REGS[32], REG{Extended: "ECX", High: "CX", Low: "CL", Arch: 32})
 	REGS[32] = append(REGS[32], REG{Extended: "EDX", High: "DX", Low: "DL", Arch: 32})
 	// since there is no way to access 1 byte use above instead
-	REGS[32] = append(REGS[32], REG{Extended: "ESI", High: "SI", Low: "AL", Arch: 32})
-	REGS[32] = append(REGS[32], REG{Extended: "EDI", High: "DI", Low: "BL", Arch: 32})
+	REGS[32] = append(REGS[32], REG{Extended: "ESI", High: "SI", Low: "", Arch: 32})
+	REGS[32] = append(REGS[32], REG{Extended: "EDI", High: "DI", Low: "", Arch: 32})
 	// Setup x64 GP the register values
 	REGS[64] = append(REGS[64], REG{Full: "RAX", Extended: "EAX", High: "AX", Low: "AL", Arch: 64})
 	REGS[64] = append(REGS[64], REG{Full: "RBX", Extended: "EBX", High: "BX", Low: "BL", Arch: 64})
 	REGS[64] = append(REGS[64], REG{Full: "RCX", Extended: "ECX", High: "CX", Low: "CL", Arch: 64})
 	REGS[64] = append(REGS[64], REG{Full: "RDX", Extended: "EDX", High: "DX", Low: "DL", Arch: 64})
 	REGS[64] = append(REGS[64], REG{Full: "RSI", Extended: "ESI", High: "SI", Low: "SIL", Arch: 64})
-	REGS[64] = append(REGS[64], REG{Full: "RDI", Extended: "EDI", High: "DX", Low: "DIL", Arch: 64})
+	REGS[64] = append(REGS[64], REG{Full: "RDI", Extended: "EDI", High: "DI", Low: "DIL", Arch: 64})
 	REGS[64] = append(REGS[64], REG{Full: "R8", Extended: "R8D", High: "R8W", Low: "R8B", Arch: 64})
 	REGS[64] = append(REGS[64], REG{Full: "R9", Extended: "R9D", High: "R9W", Low: "R9B", Arch: 64})
 	REGS[64] = append(REGS[64], REG{Full: "R10", Extended: "R10D", High: "R10W", Low: "R10B", Arch: 64})
@@ -86,7 +86,7 @@ var X86_REG_SAVE_SUFFIX = []byte{0x9d, 0x61} // POPFD, POPAD
 // X64_REG_SAVE_PREFIX instructions for saving registers to stack
 var X64_REG_SAVE_PREFIX = []byte{
 	0x50, 0x53, 0x51, 0x52, // PUSH RAX,RBX,RCX,RDX
-	0x56, 0x57, 0x55, 0x54, // PUSH RSI,RDI,RBP,RSP
+	0x56, 0x57, 0x55, // PUSH RSI,RDI,RBP
 	0x41, 0x50, 0x41, 0x51, // PUSH R8,R9
 	0x41, 0x52, 0x41, 0x53, // PUSH R10,R11
 	0x41, 0x54, 0x41, 0x55, // PUSH R12,R13
@@ -99,7 +99,7 @@ var X64_REG_SAVE_SUFFIX = []byte{
 	0x41, 0x5d, 0x41, 0x5c, // POP R13,R12
 	0x41, 0x5b, 0x41, 0x5a, // POP R11,R10
 	0x41, 0x59, 0x41, 0x58, // POP R9,R8
-	0x5c, 0x5d, 0x5f, 0x5e, // POP RSP,RBP,RDI,RSI
+	0x5d, 0x5f, 0x5e, // POP RBP,RDI,RSI
 	0x5a, 0x59, 0x5b, 0x58, // POP RDX,RCX,RBX,RAX
 }
 
@@ -108,19 +108,38 @@ var REGS map[int][]REG
 
 // GetRandomRegister returns a random register name based on given size and architecture
 func (encoder Encoder) GetRandomRegister(size int) string {
-	switch size {
-	case 8:
-		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Low
-	case 16:
-		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].High
-	case 32:
-		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Extended
-	case 64:
-		return REGS[encoder.architecture][rand.Intn(len(REGS[encoder.architecture]))].Full
-	default:
-		panic("invalid register size")
+	var regs [32]string
+	var count int
+	for _, r := range REGS[encoder.architecture] {
+		switch size {
+		case 8:
+			if r.Low != "" {
+				regs[count] = r.Low
+				count++
+			}
+		case 16:
+			if r.High != "" {
+				regs[count] = r.High
+				count++
+			}
+		case 32:
+			if r.Extended != "" {
+				regs[count] = r.Extended
+				count++
+			}
+		case 64:
+			if r.Full != "" {
+				regs[count] = r.Full
+				count++
+			}
+		}
 	}
 
+	if count == 0 {
+		panic("invalid register size or no registers available")
+	}
+
+	return regs[rand.Intn(count)]
 }
 
 // GetRandomStackAddress returns a stack address assembly referance based on the encoder architecture
@@ -160,28 +179,43 @@ func (encoder Encoder) GetBasePointer() string {
 
 // GetSafeRandomRegister returns a random register among all (registers-excluded parameters) based on given size
 func (encoder Encoder) GetSafeRandomRegister(size int, excludes ...string) (string, error) {
-	regs := []REG{}
+	var regs [32]string
+	var count int
 	for _, r := range REGS[encoder.architecture] {
+		var regStr string
+		switch size {
+		case 8:
+			regStr = r.Low
+		case 16:
+			regStr = r.High
+		case 32:
+			regStr = r.Extended
+		case 64:
+			regStr = r.Full
+		}
+
+		if regStr == "" {
+			continue
+		}
+
+		safe := true
 		for _, x := range excludes {
-			if r.Extended != x && r.Full != x && r.High != x && r.Low != x {
-				regs = append(regs, r)
+			if r.Extended == x || r.Full == x || r.High == x || r.Low == x {
+				safe = false
+				break
 			}
+		}
+		if safe {
+			regs[count] = regStr
+			count++
 		}
 	}
 
-	r := regs[rand.Intn(len(regs))]
-	switch size {
-	case 8:
-		return r.Low, nil
-	case 16:
-		return r.High, nil
-	case 32:
-		return r.Extended, nil
-	case 64:
-		return r.Full, nil
-	default:
-		return "", errors.New("invalid register size")
+	if count == 0 {
+		return "", errors.New("no safe registers available")
 	}
+
+	return regs[rand.Intn(count)], nil
 }
 
 // Assemble assembes the given instructions

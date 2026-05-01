@@ -104,7 +104,10 @@ func (encoder *Encoder) Encode(payload []byte) ([]byte, error) {
 		}
 		encodedPayload = append(garbage, encodedPayload...)
 		// Calculate schema size
-		schemaSize := ((len(encodedPayload) - len(cipheredPayload)) / (encoder.architecture / 8)) + 1
+		schemaSize := ((len(encodedPayload) - len(cipheredPayload)) / 4) + 1
+		for len(encodedPayload) < schemaSize*4 {
+			encodedPayload = append(encodedPayload, 0x90)
+		}
 		randomSchema := encoder.NewCipherSchema(schemaSize)
 
 		obfuscatedEncodedPayload := encoder.SchemaCipher(encodedPayload, 0, randomSchema)
@@ -154,9 +157,9 @@ func (encoder *Encoder) SchemaCipher(data []byte, index int, schema SCHEMA) []by
 		case "XOR":
 			binary.BigEndian.PutUint32(data[index:index+4], (binary.BigEndian.Uint32(data[index:index+4]) ^ binary.LittleEndian.Uint32(cursor.Key)))
 		case "ADD":
-			binary.LittleEndian.PutUint32(data[index:index+4], (binary.LittleEndian.Uint32(data[index:index+4])-binary.BigEndian.Uint32(cursor.Key))%0xFFFFFFFF)
+			binary.LittleEndian.PutUint32(data[index:index+4], binary.LittleEndian.Uint32(data[index:index+4])-binary.BigEndian.Uint32(cursor.Key))
 		case "SUB":
-			binary.LittleEndian.PutUint32(data[index:index+4], (binary.LittleEndian.Uint32(data[index:index+4])+binary.BigEndian.Uint32(cursor.Key))%0xFFFFFFFF)
+			binary.LittleEndian.PutUint32(data[index:index+4], binary.LittleEndian.Uint32(data[index:index+4])+binary.BigEndian.Uint32(cursor.Key))
 		case "ROL":
 			binary.LittleEndian.PutUint32(data[index:index+4], bits.RotateLeft32(binary.LittleEndian.Uint32(data[index:index+4]), -int(binary.BigEndian.Uint32(cursor.Key))))
 		case "ROR":

@@ -47,7 +47,6 @@ var SafeGarbageInstructions = []string{
 	"FNOP",
 	"FXAM",
 	"FTST",
-	"JMP 2",
 	"ROL {R},0",
 	"ROR {R},0",
 	"SHL {R},0",
