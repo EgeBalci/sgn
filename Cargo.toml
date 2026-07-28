@@ -1,0 +1,36 @@
+[package]
+name = "sgn"
+version = "1.0.0"
+edition = "2021"
+license = "MIT"
+# license-file = "LICENSE"
+readme = "README.md"
+repository = "https://github.com/EgeBalci/sgn"
+authors = ["Ege BALCI <pm@ege.sh>"]
+keywords = ["evasion", "malware", "obfuscation", "detection"]
+categories = ["command-line-utilities", "compilers"]
+description = "SGN — polymorphic binary encoder"
+
+
+[lib]
+name = "sgn"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sgn"
+path = "src/main.rs"
+
+[dependencies]
+iced-x86 = { version = "1.21", features = ["code_asm"] }
+clap = { version = "4", features = ["derive"] }
+rand = "0.8"
+
+[dev-dependencies]
+libc = "0.2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true          # drop symbols/debug info from the static binary
+panic = "abort"       # no unwinder in the release binary (smaller, fully static)

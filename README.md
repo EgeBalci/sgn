@@ -1,28 +1,45 @@
-<p align="center">
-  <img src="https://github.com/EgeBalci/sgn/raw/master/img/banner.png">
-  </br>
-  <a href="https://github.com/EgeBalci/sgn">
-    <img src="https://img.shields.io/badge/version-2.0.2-green.svg?style=flat-square">
-  </a>
-  <a href="https://goreportcard.com/report/github.com/egebalci/sgn">
-    <img src="https://goreportcard.com/badge/github.com/egebalci/sgn?style=flat-square">
-  </a>
-  <a href="https://github.com/EgeBalci/sgn/issues">
-    <img src="https://img.shields.io/github/issues/egebalci/sgn?style=flat-square&color=red">
-  </a>
-  <a href="https://raw.githubusercontent.com/EgeBalci/sgn/master/LICENSE">
-    <img src="https://img.shields.io/github/license/egebalci/sgn.svg?style=flat-square">
-  </a>
-  <a href="https://twitter.com/egeblc">
-    <img src="https://img.shields.io/badge/twitter-@egeblc-55acee.svg?style=flat-square">
-  </a>
-</p>
-
-SGN is a polymorphic binary encoder for offensive security purposes such as generating statically undetecable binary payloads. It uses a additive feedback loop to encode given binary instructions similar to [LSFR](https://en.wikipedia.org/wiki/Linear-feedback_shift_register). This project is the reimplementation of the [original Shikata ga nai](https://github.com/rapid7/metasploit-framework/blob/master/modules/encoders/x86/shikata_ga_nai.rb) in golang with many improvements. 
+# SGN
 
 
-## How? & Why?
-For offensive security community, the original implementation of shikata ga nai encoder is considered to be the best shellcode encoder(until now). But over the years security researchers found several pitfalls for statically detecing the encoder(related work [FireEye article](https://www.fireeye.com/blog/threat-research/2019/10/shikata-ga-nai-encoder-still-going-strong.html)). The main motive for this project was to create a better encoder that encodes the given binary to the point it is identical with totally random data and not possible to detect the presence of a decoder. With the help of [keystone](http://www.keystone-engine.org/) assembler library following improvments are implemented.
+<div align="center">
+  <img src=".github/banner.png">
+  <br>
+  <br>
+
+
+  [![GitHub All Releases][release-img]][release]
+  [![Build][workflow-img]][workflow]
+  [![Issues][issues-img]][issues]
+  [![Crates][crates-img]][crates]
+  [![License: MIT][license-img]][license]
+</div>
+
+[crates]: https://crates.io/crates/sgn
+[crates-img]: https://img.shields.io/crates/v/sgn
+[release]: https://github.com/EgeBalci/sgn/releases
+[release-img]: https://img.shields.io/github/v/release/EgeBalci/sgn
+[downloads]: https://github.com/EgeBalci/sgn/releases
+[downloads-img]: https://img.shields.io/github/downloads/EgeBalci/sgn/total?logo=github
+[issues]: https://github.com/EgeBalci/sgn/issues
+[issues-img]: https://img.shields.io/github/issues/EgeBalci/sgn?color=red
+[license]: https://raw.githubusercontent.com/EgeBalci/sgn/master/LICENSE
+[license-img]: https://img.shields.io/github/license/EgeBalci/sgn.svg
+[google-cloud-shell]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/EgeBalci/sgn&tutorial=README.md
+[workflow-img]: https://github.com/EgeBalci/sgn/actions/workflows/main.yml/badge.svg
+[workflow]: https://github.com/EgeBalci/sgn/actions/workflows/main.yml
+[fe-article]: https://www.fireeye.com/blog/threat-research/2019/10/shikata-ga-nai-encoder-still-going-strong.html
+[lfsr]: https://en.wikipedia.org/wiki/Linear-feedback_shift_register
+
+
+SGN is a polymorphic binary encoder for offensive security purposes such as generating statically undetecable binary payloads. It uses a additive feedback loop to encode given binary instructions similar to [LFSR][lfsr]. This project is the reimplementation of the [original Shikata ga nai](https://github.com/rapid7/metasploit-framework/blob/master/modules/encoders/x86/shikata_ga_nai.rb) in golang with many improvements. 
+
+
+> [!WARNING]  
+> The project recently ported to Rust. This port keeps the original design and behaviour but replaces the [keystone](https://www.keystone-engine.org/) text assembler with the pure-Rust [`iced-x86`](https://docs.rs/iced-x86) assembler, so **there are no native library dependencies** — it builds with a plain `cargo build`. Check out the [sgn-go](https://github.com/EgeBalci/amber/tree/sgn-go) branch for legacy Go version.
+
+
+## Why?
+For offensive security community, the original implementation of shikata ga nai encoder is considered to be the best shellcode encoder(until now). But over the years security researchers found several pitfalls for statically detecing the decoder stub(related work [FireEye article][fe-article]). The main motive for this project was to create a better encoder that encodes the given binary to the point it is identical with totally random data and not possible to detect the presence of a decoder. 
 
 - [x] 64 bit support. `Finally properly encoded x64 shellcodes !`
 - [x] New smaller decoder stub. `LFSR key reduced to 1 byte`
@@ -31,32 +48,31 @@ For offensive security community, the original implementation of shikata ga nai 
 - [x] Decoder stub obfuscation. `Random garbage instruction generator added with keystone`
 - [x] Safe register option. `Non of the registers are clobbered (optional preable, may reduce polimorphism)` 
 
+## How it works
+
+Each encoding pass:
+
+1. (optional) appends a register-restore suffix (safe mode);
+2. prepends random, value-preserving garbage instructions;
+3. ciphers the payload with the **ADFL** (additive feedback loop) cipher and
+   prepends a loop-free decoder stub that reverses it at runtime;
+4. unless `--plain`, encrypts the stub itself with a random per-run **schema
+   cipher** (`XOR/ADD/SUB/ROL/ROR/NOT` over DWORDs) and prepends a self-locating
+   schema decoder, so even the decoder looks like random data;
+5. optionally repeats `--enc` times with fresh seeds;
+6. (optional) prepends a register-save prefix (safe mode).
+
 ## Install
-
-You can get the pre-compiled binaries [HERE](https://github.com/EgeBalci/sgn/releases). For building from source follow the steps bellow.
-
-**Dependencies:**
-
-The only dependency for building the source is the [keystone engine](https://github.com/keystone-engine/keystone), follow [these](https://github.com/keystone-engine/keystone/blob/master/docs/COMPILE.md) instructions for installing the library. Once libkeystone is installed on the system, simply just go install it ツ
-
+```sh
+cargo install sgn
 ```
-go install github.com/EgeBalci/sgn@latest
-```
-
-***DOCKER INSTALL***
-
-[![Docker](http://dockeri.co/image/egee/sgn)](https://hub.docker.com/r/egee/sgn/)
-
-```
-docker pull egee/sgn
-docker run -it egee/sgn
-```
+You can also get the pre-compiled binaries [HERE][release]. 
 
 **Usage**
 
 `-h` is pretty self explanatory use `-v` if you want to see what's going on behind the scenes `( ͡° ͜ʖ ͡°)_/¯`
 <p align="center">
-  <img src="https://github.com/EgeBalci/sgn/raw/master/img/usage.gif">
+  <img src=".github/usage.gif">
 </p>
 
 
@@ -68,93 +84,79 @@ docker run -it egee/sgn
 ========[Author:-Ege-Balcı-]====/___/=======v2.0.2=========  
     ┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻           (ノ ゜Д゜)ノ ︵ 仕方がない
 
-Usage: sgn
+sgn [OPTIONS]
 
-Flags:
-  -h, --help               Show context-sensitive help.
-  -i, --input=STRING       Input binary path
-  -o, --out=STRING         Encoded output binary name
-  -a, --arch=64            Binary architecture (32/64)
-  -c, --enc=1              Number of times to encode the binary (increases overall size)
-  -M, --max=50             Maximum number of bytes for decoder obfuscation
-      --plain              Do not encode the decoder stub
-      --ascii              Generates a full ASCI printable payload (may take very long time to bruteforce)
-  -S, --safe               Preserve all register values (a.k.a. no clobber)
-      --badchars=STRING    Don't use specified bad characters given in hex format (\x00\x01\x02...)
-  -v, --verbose            Verbose mode
-      --version
-
-```
-
-***Docker Usage***
+Options:
+  -i, --input <INPUT>        Input binary path
+  -o, --out <OUT>            Encoded output binary name (default: <input>.sgn)
+  -a, --arch <ARCH>          Binary architecture (32/64) [default: 64]
+  -c, --enc <ENC>            Number of times to encode the binary [default: 1]
+  -M, --max <MAX>            Maximum bytes per garbage block [default: 50]
+      --plain                Do not encode the decoder stub
+      --ascii                Generate a fully ASCII-printable payload (slow)
+  -S, --safe                 Preserve all register values (no clobber)
+      --badchars <BADCHARS>  Avoid these bytes, hex format (e.g. \x00\x0a)
+  -v, --verbose              Verbose mode
+  -h, --help                 Print help
+  -V, --version              Print version
 
 ```
-docker run -it -v /tmp/:/tmp/ sgn -i /tmp/shellcode
+
+Example:
+
+```sh
+sgn -i shellcode.bin -o encoded.bin -a 64 --badchars '\x00\x0a\x0d'
 ```
-
-## Using As Library
-Warning !! SGN package is still under development for better performance and several improvements. Most of the functions are subject to change.
-
-```
-package main
-
-import (
-	"encoding/hex"
-	"fmt"
-	"io/ioutil"
-
-	sgn "github.com/egebalci/sgn/pkg"
-)
-
-func main() {
-	// First open some file
-	file, err := os.ReadFile("myfile.bin")
-	if err != nil { // check error
-		fmt.Println(err)
-		return
-	}
-	// Create a new SGN encoder
-	encoder, err := sgn.NewEncoder(64)
-	if err != nil {
-		fmt.Println(err)
-		return
-    }	
-    // Set the proper architecture
-	encoder.SetArchitecture(64)
-	// Encode the binary
-	encodedBinary, err := encoder.Encode(file)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	// Print out the hex dump of the encoded binary
-	fmt.Println(hex.Dump(encodedBinary))
-
-}
-```
-
 
 ## Execution Flow
 
 The following image is a basic workflow diagram for the encoder. But keep in mind that the sizes, locations and orders will change for garbage instructions, decoders and schema decoders on each iteration. 
 
 <p align="center">
-  <img src="https://github.com/EgeBalci/sgn/raw/master/img/flow.png">
+  <img src=".github/flow.png">
 </p>
 
 LFSR itself is pretty powerful in terms of probability space. For even more polimorphism garbage instructions are appended at the begining of the unencoded raw payload. Below image shows the the companion matrix of the characteristic polynomial of the LFSR and denoting the seed as a column vector, the state of the register in Fibonacci configuration after k steps.
 
 <p align="center">
-  <img src="https://github.com/EgeBalci/sgn/raw/master/img/matrices.svg">
+  <img src=".github/matrices.svg">
 </p>
 
 
-## [Challenge](https://github.com/EgeBalci/sgn/wiki/Challange_Guidelines)
+## Using as a library
 
-Considering the probability space of this encoder I personally don't think that any rule based static detection mechanism can detect the binaries that are encoded with SGN. In fact I am willing to give out the donation money for this project as a symbolic prize if anyone can write a YARA rule that can detect every encoded output. Check out [***HERE***](https://github.com/EgeBalci/sgn/wiki/Challange_Guidelines) for the guidelines and rules for claiming the donation money.
+```rust
+use sgn::Encoder;
 
-[***Current Donation Amount***](https://www.blockchain.com/tr/btc/address/1615NKMjpHShh3hWHrazWybgJxpqZgz4f2)
+let shellcode = std::fs::read("payload.bin")?;
+let mut encoder = sgn::Encoder::new(64)?;
+let encoded = encoder.encode(&shellcode)?;
+println!("encoded {} bytes", encoded.len());
+```
 
-[![QR](https://github.com/EgeBalci/sgn/raw/master/img/btc_qr.png)](https://www.blockchain.com/tr/btc/address/1615NKMjpHShh3hWHrazWybgJxpqZgz4f2)
+See `examples/encode_binary.rs`.
 
-If you tried and failed please consider donating `[̲̅$̲̅(̲̅ ͡° ͜ʖ ͡°̲̅)̲̅$̲̅]`
+## Testing
+
+```sh
+cargo test
+```
+
+The suite includes cipher round-trip unit tests plus **real execution tests**:
+encoded x64 shellcode is mapped executable and run in-process, and x86 shellcode
+is executed via a `cc -m32` helper harness (skipped automatically if no 32-bit
+toolchain is present). Both architectures are exercised across the plain,
+schema, multi-layer and safe-register modes, including a randomized stress loop.
+
+## Notes on the port
+
+* Instruction generation uses `iced-x86`'s typed assembler API rather than
+  keystone assembly text; the decoder stubs were rebuilt around RIP-relative
+  addressing (x64) and a `call/pop` two-pass scheme (x86).
+* The schema cipher is expressed directly in the CPU's native little-endian
+  DWORD view, which is equivalent to but clearer than the original's mixed
+  big/little-endian arithmetic.
+* Dead code from the original (the unused ~3k-line instruction-set table and the
+  "unsafe garbage" generator that nothing called) was dropped.
+* Minor fixes: `random_byte` now spans the full `0..=255` range, and the
+  garbage-size budget (`--max`) is applied consistently as a per-block cap.

@@ -1,44 +1,95 @@
-
 name: build
 
 on:
   push:
     branches: [ "master" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  macos-run:
-    runs-on: macos-latest
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl   # fully static
+            bin: sgn
+            archive: sgn-x86_64-unknown-linux-musl.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc       # static CRT
+            bin: sgn.exe
+            archive: sgn-x86_64-pc-windows-msvc.zip
+          - os: macos-latest
+            target: aarch64-apple-darwin         # macOS cannot be fully static
+            bin: sgn
+            archive: sgn-aarch64-apple-darwin.tar.gz
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Go
-      uses: actions/setup-go@v3
+    - uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
       with:
-        go-version: 1.21
-    - name: Make Build
-      run: make
-    - name: Test Run
-      run: ./build/sgn --version
-  linux-run:
+        targets: ${{ matrix.target }}
+
+    - name: Install musl tools
+      if: matrix.target == 'x86_64-unknown-linux-musl'
+      run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.target }}
+
+    - name: Build
+      run: cargo build --release --target ${{ matrix.target }} --verbose
+
+    - name: Test
+      run: cargo test --release --target ${{ matrix.target }} --verbose
+
+    - name: Smoke test
+      shell: bash
+      run: ./target/${{ matrix.target }}/release/${{ matrix.bin }} --version
+
+    - name: Package (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: tar -czf "${{ matrix.archive }}" -C "target/${{ matrix.target }}/release" "${{ matrix.bin }}"
+
+    - name: Package (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: Compress-Archive -Path "target/${{ matrix.target }}/release/${{ matrix.bin }}" -DestinationPath "${{ matrix.archive }}"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.archive }}
+        path: ${{ matrix.archive }}
+        if-no-files-found: error
+
+  release:
+    name: release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Go
-      uses: actions/setup-go@v3
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
       with:
-        go-version: 1.21
-    - name: Make Build
-      run: make
-    - name: Test Run
-      run: ./build/sgn --version
-  windows-run:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Go
-      uses: actions/setup-go@v3
+        path: artifacts
+        merge-multiple: true
+
+    - name: Publish GitHub release
+      uses: softprops/action-gh-release@v2
       with:
-        go-version: 1.21
-    - name: Make Build
-      run: make
-    - name: Test Run
-      run: ./build/sgn.exe --version
+        files: artifacts/*
+        generate_release_notes: true

@@ -1,0 +1,36 @@
+# Build fully static binaries: statically link the C runtime so the resulting
+# executable has no external dynamic dependencies.
+#
+# Static linking is a rustc/linker concern, not a Cargo.toml one, so it lives
+# here. The flags are per-target on purpose:
+#
+#   * A global `[build] rustflags` (or `RUSTFLAGS`) would also be applied to
+#     host proc-macros (e.g. clap_derive) and fail with "cannot produce
+#     proc-macro ... does not support these crate types".
+#   * None of the triples below is the glibc host default
+#     (x86_64-unknown-linux-gnu), so a plain `cargo build` / `cargo test`
+#     keeps working normally (dynamically linked, proc-macros fine). Static
+#     linking only kicks in when you pass the matching `--target`.
+#
+# Fully static builds:
+#   Linux : cargo build --release --target x86_64-unknown-linux-musl
+#   Windows: cargo build --release --target x86_64-pc-windows-msvc
+#
+# glibc can be linked statically too (--target x86_64-unknown-linux-gnu with
+# +crt-static) but it is officially discouraged (NSS/dlopen breakage), so musl
+# is the recommended route for Linux. macOS is intentionally absent: Apple does
+# not support fully static executables (libSystem cannot be statically linked).
+
+# --- Linux (musl): produces a fully static binary; static is musl's default ---
+[target.x86_64-unknown-linux-musl]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-unknown-linux-musl]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+# --- Windows (MSVC): statically link the CRT (no VC++ redist needed) ---
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
